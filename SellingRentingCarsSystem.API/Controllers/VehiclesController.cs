@@ -67,9 +67,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpGet("{availableOnly}")]
     public async Task<IActionResult> GetAllVehiclesAsync(
         [FromRoute] bool availableOnly,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.VehicleServices.GetAllVehicles(availableOnly, cancellationToken);
+        var temp = await unitOfWork.VehicleServices.GetAllVehicles(availableOnly, filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -79,9 +80,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     public async Task<IActionResult> GetVehiclesByPowerTrainTypeAsync(
         [FromRoute] bool availableOnly,
         [FromBody] VehiclePowerTrainRequest vehiclePowerTrainRequest,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.VehicleServices.GetVehiclesByPowerTrainType(vehiclePowerTrainRequest, availableOnly, cancellationToken);
+        var temp = await unitOfWork.VehicleServices.GetVehiclesByPowerTrainType(vehiclePowerTrainRequest, availableOnly, filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -91,9 +93,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     public async Task<IActionResult> GetVehiclesByPowerTrainIDAsync(
         [FromRoute] string powerTrainID,
         [FromRoute] bool availableOnly,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.VehicleServices.GetVehiclesByPowerTrainID(powerTrainID, availableOnly, cancellationToken);
+        var temp = await unitOfWork.VehicleServices.GetVehiclesByPowerTrainID(powerTrainID, availableOnly, filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -125,9 +128,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpGet("search/{modelName}")]
     public async Task<IActionResult> SearchForVehicleByModelNameAsync(
         [FromRoute] string modelName,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.VehicleServices.SearchForVehicle(modelName, cancellationToken);
+        var temp = await unitOfWork.VehicleServices.SearchForVehicle(modelName, filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -147,9 +151,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetVehiclesByStatusAsync(
         [FromBody] VehicleStatusRequest vehicleStatusRequest,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.VehicleServices.VehicleByStatus(vehicleStatusRequest, cancellationToken);
+        var temp = await unitOfWork.VehicleServices.VehicleByStatus(vehicleStatusRequest, filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -243,9 +248,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpGet("{vehicleID}/maintenance")]
     public async Task<IActionResult> GetMaintenancesForVehicleAsync(
         [FromRoute] string vehicleID,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.MaintenanceServices.GetMaintenancesForVehicleAsync(vehicleID, cancellationToken);
+        var temp = await unitOfWork.MaintenanceServices.GetMaintenancesForVehicleAsync(vehicleID, filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -254,9 +260,11 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
 
     //Sales
     [HttpGet("sales")]
-    public async Task<IActionResult> GetAllSalesAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllSalesAsync(
+        [FromQuery] RequestFilters filters,
+        CancellationToken cancellationToken)
     {
-        var temp = await unitOfWork.SellServices.AllSelledVehicles(cancellationToken);
+        var temp = await unitOfWork.SellServices.AllSelledVehicles(filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -300,11 +308,12 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpGet("books/{isCanceled}/{isDone}")]
     public async Task<IActionResult> GetBooksForVehicleInRangeDate(
         [FromBody] CheckBookingDateRequest checkBookingDateRequest,
+        [FromQuery] RequestFilters filters,
         [FromRoute] bool isCanceled = true,
         [FromRoute] bool isDone = true,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.BookingServices.GetBooksForVehicleInRangeDate(checkBookingDateRequest, isCanceled, isDone, cancellationToken);
+        var temp = await unitOfWork.BookingServices.GetBooksForVehicleInRangeDate(checkBookingDateRequest, isCanceled, isDone, filters, cancellationToken);
         if(temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();
@@ -355,9 +364,11 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     }
 
     [HttpGet("books")]
-    public async Task<IActionResult> GetAllVehicleBooks(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetAllVehicleBooks(
+        [FromQuery] RequestFilters filters,
+        CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.BookingServices.VehicleBooking(cancellationToken);
+        var temp = await unitOfWork.BookingServices.VehicleBooking(filters, cancellationToken);
         if (temp.IsSuccess) return Ok(temp.Value);
         return temp.ToProblem();
     }
@@ -367,9 +378,10 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpGet("rents/{vehicleID}")]
     public async Task<IActionResult> GetRentHistoryForVehicle(
         [FromRoute] string vehicleID,
+        [FromQuery] RequestFilters filters,
         CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.RentServices.RentHistoryForVehicle(vehicleID, cancellationToken);
+        var temp = await unitOfWork.RentServices.RentHistoryForVehicle(vehicleID, filters, cancellationToken);
         if (temp.IsSuccess) return Ok(temp.Value);
         return temp.ToProblem();
     }
@@ -406,9 +418,11 @@ public class VehiclesController(IUnitOfWork unitOfWork) : ControllerBase
     }
 
     [HttpGet("rents/today")]
-    public async Task<IActionResult> GetVehicleEndRentToday(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetVehicleEndRentToday(
+        [FromQuery] RequestFilters filters,
+        CancellationToken cancellationToken = default)
     {
-        var temp = await unitOfWork.RentServices.VehicleEndRentToday(cancellationToken);
+        var temp = await unitOfWork.RentServices.VehicleEndRentToday(filters, cancellationToken);
         if (temp.IsSuccess) return Ok(temp.Value);
         return temp.ToProblem();
     }

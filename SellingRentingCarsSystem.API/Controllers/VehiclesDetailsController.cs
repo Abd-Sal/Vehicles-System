@@ -161,6 +161,17 @@ public class VehiclesDetailsController(IUnitOfWork unitOfWork) : ControllerBase
         return temp.ToProblem();
     }
 
+    [HttpGet("power-train/full")]
+    public async Task<IActionResult> GetAllFullPowerTrains(
+        [FromQuery] RequestFilters filters,
+        CancellationToken cancellationToken = default)
+    {
+        var temp = await unitOfWork.VehicleDetailsServices.GetAllFullPowerTrains(filters, cancellationToken);
+        if (temp.IsSuccess)
+            return Ok(temp.Value);
+        return temp.ToProblem();
+    }
+
     [HttpGet("power-train/{powerTrainID}")]
     public async Task<IActionResult> GetPowerTrainById(
         [FromRoute] string powerTrainID,
@@ -413,6 +424,17 @@ public class VehiclesDetailsController(IUnitOfWork unitOfWork) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var temp = await unitOfWork.VehicleDetailsServices.GetAllModels(filters, cancellationToken);
+        if (temp.IsSuccess)
+            return Ok(temp.Value);
+        return temp.ToProblem();
+    }
+
+    [HttpGet("models/full")]
+    public async Task<IActionResult> GetAllFullModelsAsync(
+        [FromQuery] RequestFilters filters,
+        CancellationToken cancellationToken = default)
+    {
+        var temp = await unitOfWork.VehicleDetailsServices.GetAllFullModels(filters, cancellationToken);
         if (temp.IsSuccess)
             return Ok(temp.Value);
         return temp.ToProblem();

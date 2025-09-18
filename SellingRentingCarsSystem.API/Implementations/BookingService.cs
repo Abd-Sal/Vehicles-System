@@ -52,20 +52,71 @@ public class BookingService(AppDbContext appDbContext, IMapper mapper,
         return Result.Success(book.ToBookingResponse(mapper));
     }
 
-    public async Task<Result<List<BookingVehicleResponse>>> GetBooksForVehicleInRangeDate
-        (CheckBookingDateRequest checkBookingDateRequest, bool isCanceled = true, bool isDone = true, CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<FullBookingVehicleResponse>>> GetBooksForVehicleInRangeDate
+        (CheckBookingDateRequest checkBookingDateRequest, bool isCanceled, bool isDone, RequestFilters filters, CancellationToken cancellationToken = default)
     {
         if (!(await appDbContext.Vehicles.AnyAsync(x => x.Id == checkBookingDateRequest.VehicleID, cancellationToken)))
-            return Result.Failure<List<BookingVehicleResponse>>(VehicleErrors.NotFoundVehicle);
+            return Result.Failure<PaginatedList<FullBookingVehicleResponse>>(VehicleErrors.NotFoundVehicle);
 
-        var result = (await appDbContext.Bookings.AsNoTracking()
+        var query = appDbContext.Bookings.AsNoTracking()
+            .Include(x => x.Customer)
+            .Include(x => x.Vehicle)
+            .Include(x => x.Vehicle.Model)
+            .Include(x => x.Vehicle.Model.Make)
+            .Include(x => x.Vehicle.BodyType)
+            .Include(x => x.Vehicle.TransmissionType)
+            .Include(x => x.Vehicle.PowerTrain)
+            .Include(x => x.Vehicle.PowerTrain.ChargePort)
+            .Include(x => x.Vehicle.PowerTrain.FuleType)
+            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
+            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => x.StartDate < checkBookingDateRequest.EndDate &&
                         x.EndDate > checkBookingDateRequest.StartDate &&
                         (isCanceled ? !x.Canceled : true) &&
                         (isDone ? !x.Done : true))
-            .OrderByDescending(x => x.StartDate)
-            .ToListAsync(cancellationToken))
-            .ToBookingResponses(mapper);
+            .Select(x => new FullBookingVehicleResponse(
+                x.Id,
+                new VehicleResponse(
+                    x.Vehicle.Id,
+                    x.Vehicle.VIN,
+                    new FullModelResponse(
+                            x.Vehicle.Model.Id,
+                            x.Vehicle.Model.Make.ToMakeResponse(mapper),
+                            x.Vehicle.Model.ModelName,
+                            x.Vehicle.Model.ProductionYear
+                        ),
+                    x.Vehicle.AddDate,
+                    x.Vehicle.RangeMiles,
+                    x.Vehicle.InteriorColor,
+                    x.Vehicle.ExteriorColor,
+                    x.Vehicle.VehicleStatus,
+                    x.Vehicle.BodyType.ToBodyTypeResponse(mapper),
+                    x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+                    x.Vehicle.PassengerCount,
+                    new FullPowerTrainResponse(
+                            x.Vehicle.PowerTrain.Id,
+                            x.Vehicle.PowerTrain.PowerTrainType,
+                            x.Vehicle.PowerTrain.HorsePower,
+                            x.Vehicle.PowerTrain.Torque,
+                            x.Vehicle.PowerTrain.CombinedRangeMiles,
+                            x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+                            x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.BatteryCapacityKWh,
+                            x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.Aspiration != null? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.EngineSize,
+                            x.Vehicle.PowerTrain.Cylinders
+                        ),
+                    x.Vehicle.VehiclePrice
+                ),
+                x.Customer.ToCustomerResponse(mapper),
+                x.StartDate,
+                x.EndDate,
+                x.ExpectedAmount
+            )).OrderByDescending(x => x.StartDate);
+
+        var result = await PaginatedList<FullBookingVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
@@ -153,15 +204,66 @@ public class BookingService(AppDbContext appDbContext, IMapper mapper,
         return Result.Success();
     }
 
-    public async Task<Result<List<BriefVehicleResponse>>> VehicleBooking
-        (CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<FullBookingVehicleResponse>>> VehicleBooking
+        (RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var result = (await appDbContext.Bookings.AsNoTracking()
+
+        var query = appDbContext.Bookings.AsNoTracking()
+            .Include(x => x.Customer)
             .Include(x => x.Vehicle)
-            .OrderByDescending(x => x.EndDate)
-            .Select(x => x.Vehicle)
-            .ToListAsync(cancellationToken))
-            .ToBriefVehicleResponses(mapper);
+            .Include(x => x.Vehicle.Model)
+            .Include(x => x.Vehicle.Model.Make)
+            .Include(x => x.Vehicle.BodyType)
+            .Include(x => x.Vehicle.TransmissionType)
+            .Include(x => x.Vehicle.PowerTrain)
+            .Include(x => x.Vehicle.PowerTrain.ChargePort)
+            .Include(x => x.Vehicle.PowerTrain.FuleType)
+            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
+            .Include(x => x.Vehicle.PowerTrain.Aspiration)
+            .Select(x => new FullBookingVehicleResponse(
+                x.Id,
+                new VehicleResponse(
+                    x.Vehicle.Id,
+                    x.Vehicle.VIN,
+                    new FullModelResponse(
+                            x.Vehicle.Model.Id,
+                            x.Vehicle.Model.Make.ToMakeResponse(mapper),
+                            x.Vehicle.Model.ModelName,
+                            x.Vehicle.Model.ProductionYear
+                        ),
+                    x.Vehicle.AddDate,
+                    x.Vehicle.RangeMiles,
+                    x.Vehicle.InteriorColor,
+                    x.Vehicle.ExteriorColor,
+                    x.Vehicle.VehicleStatus,
+                    x.Vehicle.BodyType.ToBodyTypeResponse(mapper),
+                    x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+                    x.Vehicle.PassengerCount,
+                    new FullPowerTrainResponse(
+                            x.Vehicle.PowerTrain.Id,
+                            x.Vehicle.PowerTrain.PowerTrainType,
+                            x.Vehicle.PowerTrain.HorsePower,
+                            x.Vehicle.PowerTrain.Torque,
+                            x.Vehicle.PowerTrain.CombinedRangeMiles,
+                            x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+                            x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.BatteryCapacityKWh,
+                            x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.EngineSize,
+                            x.Vehicle.PowerTrain.Cylinders
+                        ),
+                    x.Vehicle.VehiclePrice
+                ),
+                x.Customer.ToCustomerResponse(mapper),
+                x.StartDate,
+                x.EndDate,
+                x.ExpectedAmount
+            ))
+            .OrderByDescending(x => x.EndDate);
+
+        var result = await PaginatedList<FullBookingVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
@@ -181,5 +283,73 @@ public class BookingService(AppDbContext appDbContext, IMapper mapper,
                 return Result.Failure(cancelBook.Error);
         }
         return Result.Success();
+    }
+
+    //private methods
+    public async Task<Result<List<FullBookingVehicleResponse>>> GetBooksForVehicleInRangeDate
+        (CheckBookingDateRequest checkBookingDateRequest, bool isCanceled, bool isDone, CancellationToken cancellationToken = default)
+    {
+        if (!(await appDbContext.Vehicles.AnyAsync(x => x.Id == checkBookingDateRequest.VehicleID, cancellationToken)))
+            return Result.Failure<List<FullBookingVehicleResponse>>(VehicleErrors.NotFoundVehicle);
+
+        var query = await appDbContext.Bookings.AsNoTracking()
+            .Include(x => x.Customer)
+            .Include(x => x.Vehicle)
+            .Include(x => x.Vehicle.Model)
+            .Include(x => x.Vehicle.Model.Make)
+            .Include(x => x.Vehicle.BodyType)
+            .Include(x => x.Vehicle.TransmissionType)
+            .Include(x => x.Vehicle.PowerTrain)
+            .Include(x => x.Vehicle.PowerTrain.ChargePort)
+            .Include(x => x.Vehicle.PowerTrain.FuleType)
+            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
+            .Include(x => x.Vehicle.PowerTrain.Aspiration)
+            .Where(x => x.StartDate < checkBookingDateRequest.EndDate &&
+                        x.EndDate > checkBookingDateRequest.StartDate &&
+                        (isCanceled ? !x.Canceled : true) &&
+                        (isDone ? !x.Done : true))
+            .Select(x => new FullBookingVehicleResponse(
+                x.Id,
+                new VehicleResponse(
+                    x.Vehicle.Id,
+                    x.Vehicle.VIN,
+                    new FullModelResponse(
+                            x.Vehicle.Model.Id,
+                            x.Vehicle.Model.Make.ToMakeResponse(mapper),
+                            x.Vehicle.Model.ModelName,
+                            x.Vehicle.Model.ProductionYear
+                        ),
+                    x.Vehicle.AddDate,
+                    x.Vehicle.RangeMiles,
+                    x.Vehicle.InteriorColor,
+                    x.Vehicle.ExteriorColor,
+                    x.Vehicle.VehicleStatus,
+                    x.Vehicle.BodyType.ToBodyTypeResponse(mapper),
+                    x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+                    x.Vehicle.PassengerCount,
+                    new FullPowerTrainResponse(
+                            x.Vehicle.PowerTrain.Id,
+                            x.Vehicle.PowerTrain.PowerTrainType,
+                            x.Vehicle.PowerTrain.HorsePower,
+                            x.Vehicle.PowerTrain.Torque,
+                            x.Vehicle.PowerTrain.CombinedRangeMiles,
+                            x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+                            x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.BatteryCapacityKWh,
+                            x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+                            x.Vehicle.PowerTrain.EngineSize,
+                            x.Vehicle.PowerTrain.Cylinders
+                        ),
+                    x.Vehicle.VehiclePrice
+                ),
+                x.Customer.ToCustomerResponse(mapper),
+                x.StartDate,
+                x.EndDate,
+                x.ExpectedAmount
+            )).OrderByDescending(x => x.StartDate)
+            .ToListAsync(cancellationToken);
+        return Result.Success(query);
     }
 }

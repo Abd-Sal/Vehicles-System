@@ -2,8 +2,8 @@
 
 public record CombinationPowerTrainRequest(
     int HorsePower,
-    decimal Torque,
-    decimal CombinedRangeMiles,
+    float Torque,
+    float CombinedRangeMiles,
     string FuelDeliveryID,
     string FuelTypeID,
     string AspirationID,

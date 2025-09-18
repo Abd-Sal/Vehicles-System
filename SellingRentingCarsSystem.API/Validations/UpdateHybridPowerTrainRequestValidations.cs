@@ -32,17 +32,13 @@ public class UpdateHybridPowerTrainRequestValidations : AbstractValidator<Update
             .Must(x => x >= 1 && x <= 48)
             .WithMessage("{PropertyName} must be greater than 0 and less than 48");
 
-        RuleFor(x => x.ElectricRangeMiles)
+        RuleFor(x => x.ElectricOnlyRangeMiles)
             .GreaterThan(0)
             .WithMessage("{PropertyName} must be greater than 0");
 
-        RuleFor(x => x.ChargePortTypeID)
+        RuleFor(x => x.ChargePortID)
             .NotEmpty()
             .WithMessage("{PropertyName} is required");
-
-        RuleFor(x => x.RangeMiles)
-            .GreaterThanOrEqualTo(0)
-            .WithMessage("{PropertyName} must be greater than or equal 0");
 
         RuleFor(x => x.BatteryCapacityKWh)
             .GreaterThan(0)

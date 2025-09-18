@@ -3,7 +3,7 @@
 public record VehicleResponse(
     string Id,
     string VIN,
-    ModelResponse Model,
+    FullModelResponse Model,
     DateTime AddDate,
     int RangeMiles,
     string InteriorColor,
@@ -12,6 +12,6 @@ public record VehicleResponse(
     BodyTypeResponse BodyType,
     TransmissionTypeResponse TransmissionType,
     int passengerCount,
-    PowerTrainResponse PowerTrain,
+    FullPowerTrainResponse PowerTrain,
     decimal VehiclePrice
 );

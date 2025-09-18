@@ -2,10 +2,9 @@
 
 public record UpdateElectricPowerTrainRequest(
     int HorsePower,
-    decimal Torque,
-    decimal ElectricRangeMiles,
-    string ChargePortTypeID,
-    int RangeMiles,
-    decimal BatteryCapacityKWh
+    float Torque,
+    float ElectricOnlyRangeMiles,
+    string ChargePortID,
+    float BatteryCapacityKWh
 );
 

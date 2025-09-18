@@ -9,6 +9,8 @@ public record FullHybridVehicleRequest(
     FuelTypeRequest FuelType,
     TransmissionTypeRequest TransmissionType,
     HybridPowerTrainRequest PowerTrain,
+    int RangeMiles,
+    int PassengerCount,
     decimal VehiclePrice
 ) : IVehicleRequest;
 

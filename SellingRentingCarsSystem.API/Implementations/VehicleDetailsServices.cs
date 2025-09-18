@@ -56,7 +56,7 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
         if (electricPowerTrainRequest is null)
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NullPowerTrain);
 
-        if(!(await appDbContext.ChargePorts.AnyAsync(x => x.Id == electricPowerTrainRequest.ChargePortTypeID, cancellationToken)))
+        if(!(await appDbContext.ChargePorts.AnyAsync(x => x.Id == electricPowerTrainRequest.ChargePortID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundChargePort);
 
         var powerTrain = electricPowerTrainRequest.ToPowerTrain(mapper);
@@ -292,6 +292,20 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
 
         return Result.Success(result);
     }
+    public async Task<Result<PaginatedList<FullModelResponse>>> GetAllFullModels
+        (RequestFilters filters, CancellationToken cancellationToken = default)
+    {
+        var query = appDbContext.Models.AsNoTracking()
+            .Include(x => x.Make)
+            .Select(x => new FullModelResponse(
+                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
+            ));
+
+        var result = await PaginatedList<FullModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+
+        return Result.Success(result);
+
+    }
 
     public async Task<Result<PaginatedList<PowerTrainResponse>>> GetAllPowerTrains
         (RequestFilters filters, CancellationToken cancellationToken = default)
@@ -300,6 +314,29 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
             .ProjectTo<PowerTrainResponse>(mapper.ConfigurationProvider);
 
         var result = await PaginatedList<PowerTrainResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+
+        return Result.Success(result);
+    }
+
+    public async Task<Result<PaginatedList<FullPowerTrainResponse>>> GetAllFullPowerTrains
+        (RequestFilters filters, CancellationToken cancellationToken = default)
+    {
+        var query = appDbContext.PowerTrains.AsNoTracking()
+            .Include(x => x.ChargePort)
+            .Include(x => x.FuelDelivery)
+            .Include(x => x.FuleType)
+            .Include(x => x.Aspiration)
+            .Select(x => new FullPowerTrainResponse(
+                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles,
+                x.ElectricOnlyRangeMiles, (x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null),
+                x.BatteryCapacityKWh, (x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
+                (x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null),
+                (x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null),
+                x.EngineSize, x.Cylinders
+
+            ));
+
+        var result = await PaginatedList<FullPowerTrainResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
@@ -437,60 +474,96 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
         return Result.Success(result);
     }
 
-    public async Task<Result<ModelResponse>> GetModelByID
+    public async Task<Result<FullModelResponse>> GetModelByID
         (string modelID, CancellationToken cancellationToken = default)
     {
-        if ((await appDbContext.Models.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == modelID, cancellationToken)) is not { } model)
-            return Result.Failure<ModelResponse>(VehicleDetailsErrors.NotFoundMake);
-        var result = model.ToModelResponse(mapper);
+        var result = await appDbContext.Models.AsNoTracking()
+            .Include(x => x.Make)
+            .Select(x => new FullModelResponse(
+                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
+            )).SingleOrDefaultAsync(x => x.Id == modelID, cancellationToken);
+        if(result is null)
+            return Result.Failure<FullModelResponse>(VehicleDetailsErrors.NotFoundModel);
+
         return Result.Success(result);
     }
 
-    public async Task<Result<PaginatedList<ModelResponse>>> GetModelsByMakeID
+    public async Task<Result<PaginatedList<FullModelResponse>>> GetModelsByMakeID
         (string makeID, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var query = appDbContext.Models.AsNoTracking()
-            .Where(x => x.MakeID == makeID)
-            .ProjectTo<ModelResponse>(mapper.ConfigurationProvider);
+        if (!(await appDbContext.Makes.AnyAsync(x => x.Id == makeID, cancellationToken)))
+            return Result.Failure<PaginatedList<FullModelResponse>>(VehicleDetailsErrors.NotFoundMake);
 
-        var result = await PaginatedList<ModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+        var query = appDbContext.Models.AsNoTracking()
+            .Include(x => x.Make)
+            .Where(x => x.MakeID == makeID)
+            .Select(x => new FullModelResponse(
+                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
+            ));
+
+        var result = await PaginatedList<FullModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
 
-    public async Task<Result<PaginatedList<ModelResponse>>> GetModelsByName
+    public async Task<Result<PaginatedList<FullModelResponse>>> GetModelsByName
         (string modelName, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-
         var query = appDbContext.Models.AsNoTracking()
-            .OrderByDescending(x => x.ModelName)
-            .ThenByDescending(x => x.ProductionYear)
-            .ProjectTo<ModelResponse>(mapper.ConfigurationProvider);
+            .Include(x => x.Make)
+            .Where(x => x.ModelName.ToLower().Contains(modelName))
+            .Select(x => new FullModelResponse(
+                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
+            ));
 
-        var result = await PaginatedList<ModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+        var result = await PaginatedList<FullModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
 
-    public async Task<Result<PowerTrainResponse>> GetPowerTrainByID
+    public async Task<Result<FullPowerTrainResponse>> GetPowerTrainByID
         (string powerTrainID, CancellationToken cancellationToken = default)
     {
-        if ((await appDbContext.PowerTrains.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == powerTrainID, cancellationToken)) is not { } powerTrain)
-            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundMake);
-        var result = powerTrain.ToPowerTrainResponse(mapper);
+        var result = await appDbContext.PowerTrains.AsNoTracking()
+            .Include(x => x.ChargePort)
+            .Include(x => x.FuelDelivery)
+            .Include(x => x.FuleType)
+            .Include(x => x.Aspiration)
+            .Select(x => new FullPowerTrainResponse(
+                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles, x.ElectricOnlyRangeMiles,
+                (x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null), x.BatteryCapacityKWh,
+                (x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
+                (x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null),
+                (x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null),
+                x.EngineSize, x.Cylinders
+            )).SingleOrDefaultAsync(x => x.Id == powerTrainID, cancellationToken);
+
+        if (result is null)
+            return Result.Failure<FullPowerTrainResponse>(VehicleDetailsErrors.NotFoundModel);
+
         return Result.Success(result);
     }
 
-    public async Task<Result<PaginatedList<PowerTrainResponse>>> GetPowerTrainsByName
+    public async Task<Result<PaginatedList<FullPowerTrainResponse>>> GetPowerTrainsByName
         (string powerTrainName, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var query = appDbContext.PowerTrains.AsNoTracking()
-            .Where(x => x.PowerTrainType == powerTrainName)
-            .ProjectTo<PowerTrainResponse>(mapper.ConfigurationProvider);
 
-        var result = await PaginatedList<PowerTrainResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+        var query = appDbContext.PowerTrains.AsNoTracking()
+            .Include(x => x.ChargePort)
+            .Include(x => x.FuelDelivery)
+            .Include(x => x.FuleType)
+            .Include(x => x.Aspiration)
+            .Where(x => x.PowerTrainType == powerTrainName)
+            .Select(x => new FullPowerTrainResponse(
+                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles, x.ElectricOnlyRangeMiles,
+                (x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null), x.BatteryCapacityKWh,
+                (x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
+                (x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null),
+                (x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null),
+                x.EngineSize, x.Cylinders
+            ));
+
+        var result = await PaginatedList<FullPowerTrainResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
@@ -720,7 +793,7 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
         if (updateElectricPowerTrainRequest is null)
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NullPowerTrain);
 
-        if (!(await appDbContext.ChargePorts.AnyAsync(x => x.Id == updateElectricPowerTrainRequest.ChargePortTypeID, cancellationToken)))
+        if (!(await appDbContext.ChargePorts.AnyAsync(x => x.Id == updateElectricPowerTrainRequest.ChargePortID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundChargePort);
 
         if ((await appDbContext.PowerTrains.FindAsync(powerTrainID, cancellationToken)) is not { } powerTrain)
@@ -736,8 +809,8 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
                     .SetProperty(x => x.BatteryCapacityKWh, updateElectricPowerTrainRequest.BatteryCapacityKWh)
                     .SetProperty(x => x.Torque, updateElectricPowerTrainRequest.Torque)
                     .SetProperty(x => x.HorsePower, updateElectricPowerTrainRequest.HorsePower)
-                    .SetProperty(x => x.ElectricOnlyRangeMiles, updateElectricPowerTrainRequest.ElectricRangeMiles)
-                    .SetProperty(x => x.ChargePortID, updateElectricPowerTrainRequest.ChargePortTypeID)
+                    .SetProperty(x => x.ElectricOnlyRangeMiles, updateElectricPowerTrainRequest.ElectricOnlyRangeMiles)
+                    .SetProperty(x => x.ChargePortID, updateElectricPowerTrainRequest.ChargePortID)
                     .SetProperty(x => x.HashCode, hashcode),
                 cancellationToken
             );
@@ -751,7 +824,7 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
         if (updateHybridPowerTrainRequest is null)
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NullPowerTrain);
 
-        if (!(await appDbContext.ChargePorts.AnyAsync(x => x.Id == updateHybridPowerTrainRequest.ChargePortTypeID, cancellationToken)))
+        if (!(await appDbContext.ChargePorts.AnyAsync(x => x.Id == updateHybridPowerTrainRequest.ChargePortID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundChargePort);
 
         if (!(await appDbContext.FuelTypes.AnyAsync(x => x.Id == updateHybridPowerTrainRequest.FuelTypeID, cancellationToken)))
@@ -785,8 +858,8 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
                     .SetProperty(x => x.BatteryCapacityKWh, updateHybridPowerTrainRequest.BatteryCapacityKWh)
                     .SetProperty(x => x.Torque, updateHybridPowerTrainRequest.Torque)
                     .SetProperty(x => x.HorsePower, updateHybridPowerTrainRequest.HorsePower)
-                    .SetProperty(x => x.ElectricOnlyRangeMiles, updateHybridPowerTrainRequest.ElectricRangeMiles)
-                    .SetProperty(x => x.ChargePortID, updateHybridPowerTrainRequest.ChargePortTypeID)
+                    .SetProperty(x => x.ElectricOnlyRangeMiles, updateHybridPowerTrainRequest.ElectricOnlyRangeMiles)
+                    .SetProperty(x => x.ChargePortID, updateHybridPowerTrainRequest.ChargePortID)
                     .SetProperty(x => x.PowerTrainType, hybridType)
                     .SetProperty(x => x.HashCode, hashcode),
                 cancellationToken

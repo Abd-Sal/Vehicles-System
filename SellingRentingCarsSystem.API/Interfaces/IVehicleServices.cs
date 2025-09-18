@@ -2,9 +2,9 @@
 
 public interface IVehicleServices
 {
-    Task<Result<List<BriefVehicleResponse>>> GetAllVehicles(bool availableOnly = true, CancellationToken cancellationToken = default);
-    Task<Result<List<BriefVehicleResponse>>> GetVehiclesByPowerTrainType(VehiclePowerTrainRequest vehiclePowerTrainRequest, bool availableOnly = true, CancellationToken cancellationToken = default);
-    Task<Result<List<BriefVehicleResponse>>> GetVehiclesByPowerTrainID(string powerTrainID, bool availableOnly = true, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<VehicleResponse>>> GetAllVehicles(bool availableOnly, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<VehicleResponse>>> GetVehiclesByPowerTrainType(VehiclePowerTrainRequest vehiclePowerTrainRequest, bool availableOnly, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<VehicleResponse>>> GetVehiclesByPowerTrainID(string powerTrainID, bool availableOnly, RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result<VehicleResponse>> GetVehicle(string vehicleID, bool availavle = true, CancellationToken cancellationToken = default);
     Task<Result<BriefVehicleResponse>> AddVehicle(VehicleRequest vehicleRequest, CancellationToken cancellationToken = default);
     Task<Result<BriefVehicleResponse>> BuyVehicle(BuyVehicleRequest buyVehicleRequest, CancellationToken cancellationToken = default);
@@ -12,8 +12,8 @@ public interface IVehicleServices
     Task<Result> RemoveVehicle(string vehicleID, CancellationToken cancellationToken = default);
     Task<Result> UpdateVehicle(string vehicleID, VehicleRequest vehicleRequest, CancellationToken cancellationToken = default);
     Task<Result<VehicleStatusResponse>> StatusVehicle(string vehicleID, CancellationToken cancellationToken = default);
-    Task<Result<List<BriefVehicleResponse>>> SearchForVehicle(string modelName, CancellationToken cancellationToken = default);
-    Task<Result<List<BriefVehicleResponse>>> VehicleByStatus(VehicleStatusRequest vehicleStatusRequest, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<VehicleResponse>>> SearchForVehicle(string modelName, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<VehicleResponse>>> VehicleByStatus(VehicleStatusRequest vehicleStatusRequest, RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result<VehicleFeatureResponse>> AddFeatureForVehicle(string vehicleID, VehicleFeatureRequest vehicleFeatureRequest, CancellationToken cancellationToken = default);
     Task<Result> RemoveFeatureForVehicle(string vehicleFeatureID, CancellationToken cancellationToken = default);
     Task<Result<List<TagResponse>>> SetTagsForVehicles(string vehicleID, List<TagRequest> tags, CancellationToken cancellationToken = default);

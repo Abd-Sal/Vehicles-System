@@ -24,13 +24,15 @@ public interface IVehicleDetailsServices
     Task<Result<PaginatedList<MakeResponse>>> SearchMakesByName(string makeName, RequestFilters filters, CancellationToken cancellationToken = default);
 
     Task<Result<PaginatedList<ModelResponse>>> GetAllModels(RequestFilters filters, CancellationToken cancellationToken = default);
-    Task<Result<ModelResponse>> GetModelByID(string modelID,CancellationToken cancellationToken = default);
-    Task<Result<PaginatedList<ModelResponse>>> GetModelsByMakeID(string makeID, RequestFilters filters, CancellationToken cancellationToken = default);
-    Task<Result<PaginatedList<ModelResponse>>> GetModelsByName(string modelName, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<FullModelResponse>>> GetAllFullModels(RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<FullModelResponse>> GetModelByID(string modelID, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<FullModelResponse>>> GetModelsByMakeID(string makeID, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<FullModelResponse>>> GetModelsByName(string modelName, RequestFilters filters, CancellationToken cancellationToken = default);
 
     Task<Result<PaginatedList<PowerTrainResponse>>> GetAllPowerTrains(RequestFilters filters, CancellationToken cancellationToken = default);
-    Task<Result<PowerTrainResponse>> GetPowerTrainByID(string powerTrainID, CancellationToken cancellationToken = default);
-    Task<Result<PaginatedList<PowerTrainResponse>>> GetPowerTrainsByName(string powerTrainName, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<FullPowerTrainResponse>>> GetAllFullPowerTrains(RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<FullPowerTrainResponse>> GetPowerTrainByID(string powerTrainID, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<FullPowerTrainResponse>>> GetPowerTrainsByName(string powerTrainName, RequestFilters filters, CancellationToken cancellationToken = default);
 
     Task<Result<PaginatedList<TransmissionTypeResponse>>> GetAllTransmissionTypes(RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result<TransmissionTypeResponse>> GetTransmissionTypeByID(string transmissionTypeID, CancellationToken cancellationToken = default);

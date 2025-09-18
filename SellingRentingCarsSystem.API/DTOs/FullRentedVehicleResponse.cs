@@ -1,10 +1,9 @@
 ﻿namespace SellingRentingCarsSystem.API.DTOs;
 
-public record RentedVehicleResponse(
+public record FullRentedVehicleResponse(
     string RentID,
-    string VehicleID,
-    string CustomerID,
-    string FullCarModel,
+    VehicleResponse Vehicle,
+    CustomerResponse Customer,
     DateTime StartDate,
     DateTime ExpectedEndDate,
     decimal ExpectedAmount

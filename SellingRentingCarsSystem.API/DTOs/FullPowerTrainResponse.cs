@@ -1,17 +1,17 @@
 ﻿namespace SellingRentingCarsSystem.API.DTOs;
 
-public record PowerTrainResponse(
+public record FullPowerTrainResponse(
     string Id,
     string PowerTrainType,
     int HorsePower,
     int Torque,
     float? CombinedRangeMiles = null,
     float? ElectricOnlyRangeMiles = null,
-    string? ChargePortID = null,
+    ChargePortResponse? ChargePort = null,
     float? BatteryCapacityKWh = null,
-    string? FuelDeliveryID = null,
-    string? FuelTypeID = null,
-    string? AspirationID = null,
+    FuelDeliveryResponse? FuelDelivery = null,
+    FuelTypeResponse? FuelType = null,
+    AspirationResponse? Aspiration = null,
     float? EngineSize = null,
     int? Cylinders = null
 );

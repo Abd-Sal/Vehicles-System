@@ -1,9 +1,9 @@
 ﻿namespace SellingRentingCarsSystem.API.DTOs;
 
-public record VehicleFeatureResponse(
+public record VehicleFullFeatureResponse(
     string Id,
     string VehicleID,
-    string FeatureID,
+    FeatureResponse Feature,
     bool IsStandard
 );
 

@@ -8,6 +8,8 @@ public record FullElectricVehicleRequest(
     BodyTypeRequest BodyType,
     TransmissionTypeRequest TransmissionType,
     ElectricPowerTrainRequest PowerTrain,
+    int RangeMiles,
+    int PassengerCount,
     decimal VehiclePrice
 ) : IVehicleRequest;
 

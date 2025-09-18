@@ -2,17 +2,16 @@
 
 public record UpdateHybridPowerTrainRequest(
     int HorsePower,
-    decimal Torque,
-    decimal CombinationRangeMiles,
+    int Torque,
+    float CombinationRangeMiles,
     string FuelDeliveryID,
     string FuelTypeID,
     string AspirationID,
     float EngineSize,
     int Cylinders,
-    decimal ElectricRangeMiles,
-    string ChargePortTypeID,
-    int RangeMiles,
-    decimal BatteryCapacityKWh,
+    float ElectricOnlyRangeMiles,
+    string ChargePortID,
+    float BatteryCapacityKWh,
     bool PlugInHybrid
 );
 

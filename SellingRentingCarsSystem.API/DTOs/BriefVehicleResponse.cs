@@ -5,6 +5,7 @@ public record BriefVehicleResponse(
     string VIN,
     string ModelID,
     DateTime AddDate,
+    int RangeMiles,
     string ExteriorColor,
     string InteriorColor,
     string VehicleStatus,

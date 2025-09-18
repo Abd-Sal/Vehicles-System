@@ -1,4 +1,6 @@
-﻿namespace SellingRentingCarsSystem.API.AutoMapping;
+﻿using System.Threading.Tasks;
+
+namespace SellingRentingCarsSystem.API.AutoMapping;
 
 public static class AutoMapperExtensions
 {
@@ -75,22 +77,7 @@ public static class AutoMapperExtensions
         => mapper.Map<BriefVehicleResponse>(vehicle);
     public static List<BriefVehicleResponse> ToBriefVehicleResponses(this IEnumerable<Vehicle> vehicles, IMapper mapper)
         => mapper.Map<List<BriefVehicleResponse>>(vehicles);
-    public static async Task<VehicleResponse> ToVehicleResponse(this Vehicle vehicle, AppDbContext appDbContext, IMapper mapper, CancellationToken cancellationToken = default)
-        => new VehicleResponse(
-            vehicle.Id,
-            vehicle.VIN,
-            (await appDbContext.Models.FindAsync(vehicle.ModelID, cancellationToken))!.ToModelResponse(mapper),
-            vehicle.AddDate,
-            vehicle.RangeMiles,
-            vehicle.InteriorColor,
-            vehicle.ExteriorColor,
-            vehicle.VehicleStatus,
-            (await appDbContext.BodyTypes.FindAsync(vehicle.BodyTypeID, cancellationToken))!.ToBodyTypeResponse(mapper),
-            (await appDbContext.TransmissionTypes.FindAsync(vehicle.TransmissionTypeID, cancellationToken))!.ToTransmissionTypeResponse(mapper),
-            vehicle.PassengerCount,
-            (await appDbContext.PowerTrains.FindAsync(vehicle.PowerTrainID, cancellationToken))!.ToPowerTrainResponse(mapper),
-            vehicle.VehiclePrice
-        );
+
     public static VehicleStatusResponse ToVehicleStatusResponse(this Vehicle vehicle)
         => new VehicleStatusResponse(vehicle.VehicleStatus);
 
@@ -131,7 +118,7 @@ public static class AutoMapperExtensions
         => mapper.Map<BookingVehicleResponse>(booking);
     public static List<BookingVehicleResponse> ToBookingResponses(this IEnumerable<Booking> bookings, IMapper mapper)
         => mapper.Map<List<BookingVehicleResponse>>(bookings);
-
+    
     //Customer
     public static Customer ToCustomer(this CustomerRequest  customerRequest, IMapper mapper)
     => mapper.Map<Customer>(customerRequest);

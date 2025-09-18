@@ -9,6 +9,8 @@ public record FullCombinationVehicleRequest(
     FuelTypeRequest FuelType,
     TransmissionTypeRequest TransmissionType,
     CombinationPowerTrainRequest PowerTrain,
+    int RangeMiles,
+    int PassengerCount,
     decimal VehiclePrice
 ) : IVehicleRequest;
 

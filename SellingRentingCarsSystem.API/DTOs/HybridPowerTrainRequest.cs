@@ -2,16 +2,15 @@
 
 public record HybridPowerTrainRequest(
     int HorsePower,
-    decimal Torque,
-    decimal CombinedRangeMiles,
+    float Torque,
+    float CombinedRangeMiles,
     string FuelDeliveryID,
     string FuelTypeID,
     string AspirationID,
     float EngineSize,
     int Cylinders,
-    decimal ElectricOnlyRangeMiles,
+    float ElectricOnlyRangeMiles,
     string ChargePortID,
-    int RangeMiles,
-    decimal BatteryCapacityKWh,
+    float BatteryCapacityKWh,
     bool PlugInHybrid
 );

@@ -1,4 +1,6 @@
-﻿namespace SellingRentingCarsSystem.API.Implementations;
+﻿using SellingRentingCarsSystem.API.Models;
+
+namespace SellingRentingCarsSystem.API.Implementations;
 
 public class RentServices(AppDbContext appDbContext, IMapper mapper,
     IBookingServices bookingServices, IPaymentServices paymentServices,
@@ -11,19 +13,47 @@ public class RentServices(AppDbContext appDbContext, IMapper mapper,
     private readonly INotificationSender notificationSender = notificationSender;
     private readonly ILogger<RentServices> logger = logger;
 
-    public async Task<Result<List<RentVehicleResponse>>> RentHistoryForVehicle
-        (string vehicleID, CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<FullRentVehicleResponse>>> RentHistoryForVehicle
+        (string vehicleID, RequestFilters filters, CancellationToken cancellationToken = default)
     {
         if (!(await appDbContext.Vehicles.AnyAsync(x => x.Id == vehicleID, cancellationToken)))
-            return Result.Failure<List<RentVehicleResponse>>(VehicleErrors.NotFoundVehicle);
+            return Result.Failure<PaginatedList<FullRentVehicleResponse>>(VehicleErrors.NotFoundVehicle);
 
-        var result = (await appDbContext.RentVehicles.AsNoTracking()
+        var query = appDbContext.RentVehicles.AsNoTracking()
+            .Include(x => x.Customer)
+            .Include(x => x.Payment)
+            .Include(x => x.Vehicle)
+                .ThenInclude(x => x.Model)
+                    .ThenInclude(x => x.Make)
+            .Include(x => x.Vehicle.BodyType)
+            .Include(x => x.Vehicle.TransmissionType)
+            .Include(x => x.Vehicle.PowerTrain)
+            .Include(x => x.Vehicle.PowerTrain.ChargePort)
+            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
+            .Include(x => x.Vehicle.PowerTrain.FuleType)
+            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => x.VehicleID == vehicleID)
-            .ToListAsync(cancellationToken))
-            .ToRentVehicleResponses(mapper);
+            .Select(x => new FullRentVehicleResponse(
+                x.Id, new VehicleResponse(x.Vehicle.Id, x.Vehicle.VIN,
+                new FullModelResponse(x.Vehicle.Model.Id, x.Vehicle.Model.Make.ToMakeResponse(mapper), x.Vehicle.Model.ModelName, x.Vehicle.Model.ProductionYear),
+                x.Vehicle.AddDate, x.Vehicle.RangeMiles, x.Vehicle.InteriorColor, x.Vehicle.ExteriorColor, x.Vehicle.VehicleStatus,
+                x.Vehicle.BodyType.ToBodyTypeResponse(mapper), x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+                x.Vehicle.PassengerCount,
+                new FullPowerTrainResponse(x.Vehicle.PowerTrain.Id, x.Vehicle.PowerTrain.PowerTrainType,
+                x.Vehicle.PowerTrain.HorsePower, x.Vehicle.PowerTrain.Torque, x.Vehicle.PowerTrain.CombinedRangeMiles, x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+                x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null, x.Vehicle.PowerTrain.BatteryCapacityKWh,
+                x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+                x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+                x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+                x.Vehicle.PowerTrain.EngineSize, x.Vehicle.PowerTrain.Cylinders), x.Vehicle.VehiclePrice), x.Customer.ToCustomerResponse(mapper),
+                x.StartAtMile, x.EndAtMile != null ? (int)x.EndAtMile : 0, x.StartRentDate, x.ExpectedEndRentDate, x.ActualEndRentDate != null ? (DateTime)x.ActualEndRentDate : default(DateTime), x.ExpectedAmount,
+                x.DamageAmount, x.DamageDescription, x.Amount != null ? (int)x.Amount : 0, x.PayLater, x.Payment!.ToPaymentResponse(mapper)));
+
+        var result = await PaginatedList<FullRentVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
+
 
     public async Task<Result<RentVehicleResponse>> StartRentVehicle
         (RentVehicleRequest rentVehicleRequest, CancellationToken cancellationToken = default)
@@ -173,33 +203,105 @@ public class RentServices(AppDbContext appDbContext, IMapper mapper,
         return Result.Success(rentVehicle.ToRentVehicleResponse(mapper));
     }
 
-    public async Task<Result<PaginatedList<RentedVehicleResponse>>> CurrentRentingVehicle
+    public async Task<Result<PaginatedList<FullRentedVehicleResponse>>> CurrentRentingVehicle
         (RequestFilters filters, CancellationToken cancellationToken = default)
     {
+
         var query = appDbContext.RentVehicles.AsNoTracking()
+            .Include(x => x.Customer)
             .Include(x => x.Vehicle)
                 .ThenInclude(x => x.Model)
                     .ThenInclude(x => x.Make)
+            .Include(x => x.Vehicle.BodyType)
+            .Include(x => x.Vehicle.TransmissionType)
+            .Include(x => x.Vehicle.PowerTrain)
+            .Include(x => x.Vehicle.PowerTrain.ChargePort)
+            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
+            .Include(x => x.Vehicle.PowerTrain.FuleType)
+            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => !x.ActualEndRentDate.HasValue && x.Vehicle.VehicleStatus == VehiclesStatus.rent.ToString())
-            .Select(x => new RentedVehicleResponse(x.Id, x.VehicleID, x.CustomerID,
-            $"{x.Vehicle.Model.Make.MakeName} {x.Vehicle.Model.ModelName} {x.Vehicle.Model.ProductionYear}",
-                x.StartRentDate, x.ExpectedEndRentDate, x.ExpectedAmount));
+            .Select(x => new FullRentedVehicleResponse(
+                x.Id, 
+                new VehicleResponse(
+                    x.Vehicle.Id,
+                    x.Vehicle.VIN,
+                    new FullModelResponse(
+                            x.Vehicle.Model.Id,
+                            x.Vehicle.Model.Make.ToMakeResponse(mapper),
+                            x.Vehicle.Model.ModelName,
+                            x.Vehicle.Model.ProductionYear
+                            ),
+                    x.Vehicle.AddDate,
+                    x.Vehicle.RangeMiles,
+                    x.Vehicle.InteriorColor,
+                    x.Vehicle.ExteriorColor,
+                    x.Vehicle.VehicleStatus,
+                    x.Vehicle.BodyType.ToBodyTypeResponse(mapper),
+                    x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+                    x.Vehicle.PassengerCount,
+            new FullPowerTrainResponse(
+                        x.Vehicle.PowerTrain.Id,
+                        x.Vehicle.PowerTrain.PowerTrainType,
+                        x.Vehicle.PowerTrain.HorsePower,
+                        x.Vehicle.PowerTrain.Torque,
+                        x.Vehicle.PowerTrain.CombinedRangeMiles,
+                        x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+                        x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null,
+                        x.Vehicle.PowerTrain.BatteryCapacityKWh,
+                        x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+                        x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+                        x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+                        x.Vehicle.PowerTrain.EngineSize,
+                        x.Vehicle.PowerTrain.Cylinders
+                        ),
+                    x.Vehicle.VehiclePrice),
+                x.Customer.ToCustomerResponse(mapper),
+                x.StartRentDate,
+                x.ExpectedEndRentDate,
+                x.ExpectedAmount
+            )).OrderByDescending(x => x.StartDate);
 
-        var result = await PaginatedList<RentedVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+        var result = await PaginatedList<FullRentedVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
 
-    public async Task<Result<List<BriefVehicleResponse>>> VehicleEndRentToday
-        (CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<FullRentVehicleResponse>>> VehicleEndRentToday
+        (RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var result = (await appDbContext.RentVehicles.AsNoTracking()
+
+        var query = appDbContext.RentVehicles.AsNoTracking()
+            .Include(x => x.Customer)
+            .Include(x => x.Payment)
             .Include(x => x.Vehicle)
+                .ThenInclude(x => x.Model)
+                    .ThenInclude(x => x.Make)
+            .Include(x => x.Vehicle.BodyType)
+            .Include(x => x.Vehicle.TransmissionType)
+            .Include(x => x.Vehicle.PowerTrain)
+            .Include(x => x.Vehicle.PowerTrain.ChargePort)
+            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
+            .Include(x => x.Vehicle.PowerTrain.FuleType)
+            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => x.ExpectedEndRentDate.Date == DateTime.UtcNow.Date)
-            .OrderByDescending(x => x.StartRentDate)
-            .Select(x => x.Vehicle)
-            .ToListAsync(cancellationToken))
-            .ToBriefVehicleResponses(mapper);
+            .Select(x => new FullRentVehicleResponse(
+                x.Id, new VehicleResponse(x.Vehicle.Id, x.Vehicle.VIN,
+                new FullModelResponse(x.Vehicle.Model.Id, x.Vehicle.Model.Make.ToMakeResponse(mapper), x.Vehicle.Model.ModelName, x.Vehicle.Model.ProductionYear),
+                x.Vehicle.AddDate, x.Vehicle.RangeMiles, x.Vehicle.InteriorColor, x.Vehicle.ExteriorColor, x.Vehicle.VehicleStatus,
+                x.Vehicle.BodyType.ToBodyTypeResponse(mapper), x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+                x.Vehicle.PassengerCount,
+                new FullPowerTrainResponse(x.Vehicle.PowerTrain.Id, x.Vehicle.PowerTrain.PowerTrainType,
+                x.Vehicle.PowerTrain.HorsePower, x.Vehicle.PowerTrain.Torque, x.Vehicle.PowerTrain.CombinedRangeMiles, x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+                x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null, x.Vehicle.PowerTrain.BatteryCapacityKWh,
+                x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+                x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+                x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+                x.Vehicle.PowerTrain.EngineSize, x.Vehicle.PowerTrain.Cylinders), x.Vehicle.VehiclePrice), x.Customer.ToCustomerResponse(mapper),
+                x.StartAtMile, x.EndAtMile != null ? (int)x.EndAtMile : 0, x.StartRentDate, x.ExpectedEndRentDate, x.ActualEndRentDate != null ? (DateTime)x.ActualEndRentDate : default(DateTime), x.ExpectedAmount,
+                x.DamageAmount, x.DamageDescription, x.Amount != null ? (int)x.Amount : 0, x.PayLater, x.Payment!.ToPaymentResponse(mapper)))
+                .OrderByDescending(x => x.StartRentDate);
+
+        var result = await PaginatedList<FullRentVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }

@@ -12,11 +12,11 @@ public class ElectricPowerTrainRequestValidations : AbstractValidator<ElectricPo
             .GreaterThan(0)
             .WithMessage("{PropertyName} must be greater than 0");
 
-        RuleFor(x => x.ElectricRangeMiles)
+        RuleFor(x => x.ElectricOnlyRangeMiles)
             .GreaterThan(0)
             .WithMessage("{PropertyName} must be greater than 0");
 
-        RuleFor(x => x.ChargePortTypeID)
+        RuleFor(x => x.ChargePortID)
             .NotEmpty()
             .WithMessage("{PropertyName} is required");
 
