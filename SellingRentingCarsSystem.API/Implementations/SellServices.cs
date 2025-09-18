@@ -13,35 +13,9 @@ public class SellServices(AppDbContext appDbContext, IMapper mapper,
     public async Task<Result<PaginatedList<FullSellVehicleResponse>>> AllSelledVehicles
         (RequestFilters filters, CancellationToken cancellationToken = default)
     {
-
-        var query = appDbContext.SellVehicles.AsNoTracking()
-            .Include(x => x.Customer)
-            .Include(x => x.Payment)
-            .Include(x => x.Vehicle)
-                .ThenInclude(x => x.BodyType)
-            .Include(x => x.Vehicle.Model)
-            .Include(x => x.Vehicle.Model.Make)
-            .Include(x => x.Vehicle.TransmissionType)
-            .Include(x => x.Vehicle.PowerTrain)
-            .Include(x => x.Vehicle.PowerTrain.ChargePort)
-            .Include(x => x.Vehicle.PowerTrain.FuleType)
-            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
-            .Include(x => x.Vehicle.PowerTrain.Aspiration)
-            .Select(x => new FullSellVehicleResponse(
-                x.Id, new VehicleResponse(x.Vehicle.Id, x.Vehicle.VIN, new FullModelResponse(x.Vehicle.Model.Id,
-                x.Vehicle.Model.Make.ToMakeResponse(mapper), x.Vehicle.Model.ModelName, x.Vehicle.Model.ProductionYear),
-                x.Vehicle.AddDate, x.Vehicle.RangeMiles, x.Vehicle.InteriorColor, x.Vehicle.ExteriorColor, x.Vehicle.VehicleStatus,
-                x.Vehicle.BodyType.ToBodyTypeResponse(mapper), x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
-                x.Vehicle.PassengerCount, new FullPowerTrainResponse(x.Vehicle.PowerTrain.Id, x.Vehicle.PowerTrain.PowerTrainType,
-                x.Vehicle.PowerTrain.HorsePower, x.Vehicle.PowerTrain.Torque, x.Vehicle.PowerTrain.CombinedRangeMiles, x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
-                x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null,
-                x.Vehicle.PowerTrain.BatteryCapacityKWh,
-                x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
-                x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
-                x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
-                x.Vehicle.PowerTrain.EngineSize, x.Vehicle.PowerTrain.Cylinders), x.Vehicle.VehiclePrice),
-                x.Customer.ToCustomerResponse(mapper), x.SellDate, x.Payment.ToPaymentResponse(mapper)
-            )).OrderByDescending(x => x.SellDate);
+        var query = appDbContext.SellVehicles
+            .ToFullSellVehicleResponses(mapper)
+            .OrderByDescending(x => x.SellDate);
 
         var result = await PaginatedList<FullSellVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
         

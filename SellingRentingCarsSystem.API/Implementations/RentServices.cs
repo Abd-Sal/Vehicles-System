@@ -1,6 +1,4 @@
-﻿using SellingRentingCarsSystem.API.Models;
-
-namespace SellingRentingCarsSystem.API.Implementations;
+﻿namespace SellingRentingCarsSystem.API.Implementations;
 
 public class RentServices(AppDbContext appDbContext, IMapper mapper,
     IBookingServices bookingServices, IPaymentServices paymentServices,
@@ -20,40 +18,13 @@ public class RentServices(AppDbContext appDbContext, IMapper mapper,
             return Result.Failure<PaginatedList<FullRentVehicleResponse>>(VehicleErrors.NotFoundVehicle);
 
         var query = appDbContext.RentVehicles.AsNoTracking()
-            .Include(x => x.Customer)
-            .Include(x => x.Payment)
-            .Include(x => x.Vehicle)
-                .ThenInclude(x => x.Model)
-                    .ThenInclude(x => x.Make)
-            .Include(x => x.Vehicle.BodyType)
-            .Include(x => x.Vehicle.TransmissionType)
-            .Include(x => x.Vehicle.PowerTrain)
-            .Include(x => x.Vehicle.PowerTrain.ChargePort)
-            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
-            .Include(x => x.Vehicle.PowerTrain.FuleType)
-            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => x.VehicleID == vehicleID)
-            .Select(x => new FullRentVehicleResponse(
-                x.Id, new VehicleResponse(x.Vehicle.Id, x.Vehicle.VIN,
-                new FullModelResponse(x.Vehicle.Model.Id, x.Vehicle.Model.Make.ToMakeResponse(mapper), x.Vehicle.Model.ModelName, x.Vehicle.Model.ProductionYear),
-                x.Vehicle.AddDate, x.Vehicle.RangeMiles, x.Vehicle.InteriorColor, x.Vehicle.ExteriorColor, x.Vehicle.VehicleStatus,
-                x.Vehicle.BodyType.ToBodyTypeResponse(mapper), x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
-                x.Vehicle.PassengerCount,
-                new FullPowerTrainResponse(x.Vehicle.PowerTrain.Id, x.Vehicle.PowerTrain.PowerTrainType,
-                x.Vehicle.PowerTrain.HorsePower, x.Vehicle.PowerTrain.Torque, x.Vehicle.PowerTrain.CombinedRangeMiles, x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
-                x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null, x.Vehicle.PowerTrain.BatteryCapacityKWh,
-                x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
-                x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
-                x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
-                x.Vehicle.PowerTrain.EngineSize, x.Vehicle.PowerTrain.Cylinders), x.Vehicle.VehiclePrice), x.Customer.ToCustomerResponse(mapper),
-                x.StartAtMile, x.EndAtMile != null ? (int)x.EndAtMile : 0, x.StartRentDate, x.ExpectedEndRentDate, x.ActualEndRentDate != null ? (DateTime)x.ActualEndRentDate : default(DateTime), x.ExpectedAmount,
-                x.DamageAmount, x.DamageDescription, x.Amount != null ? (int)x.Amount : 0, x.PayLater, x.Payment!.ToPaymentResponse(mapper)));
+            .ToFullRentVehicleResponses(mapper);
 
         var result = await PaginatedList<FullRentVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
-
 
     public async Task<Result<RentVehicleResponse>> StartRentVehicle
         (RentVehicleRequest rentVehicleRequest, CancellationToken cancellationToken = default)
@@ -208,58 +179,9 @@ public class RentServices(AppDbContext appDbContext, IMapper mapper,
     {
 
         var query = appDbContext.RentVehicles.AsNoTracking()
-            .Include(x => x.Customer)
-            .Include(x => x.Vehicle)
-                .ThenInclude(x => x.Model)
-                    .ThenInclude(x => x.Make)
-            .Include(x => x.Vehicle.BodyType)
-            .Include(x => x.Vehicle.TransmissionType)
-            .Include(x => x.Vehicle.PowerTrain)
-            .Include(x => x.Vehicle.PowerTrain.ChargePort)
-            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
-            .Include(x => x.Vehicle.PowerTrain.FuleType)
-            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => !x.ActualEndRentDate.HasValue && x.Vehicle.VehicleStatus == VehiclesStatus.rent.ToString())
-            .Select(x => new FullRentedVehicleResponse(
-                x.Id, 
-                new VehicleResponse(
-                    x.Vehicle.Id,
-                    x.Vehicle.VIN,
-                    new FullModelResponse(
-                            x.Vehicle.Model.Id,
-                            x.Vehicle.Model.Make.ToMakeResponse(mapper),
-                            x.Vehicle.Model.ModelName,
-                            x.Vehicle.Model.ProductionYear
-                            ),
-                    x.Vehicle.AddDate,
-                    x.Vehicle.RangeMiles,
-                    x.Vehicle.InteriorColor,
-                    x.Vehicle.ExteriorColor,
-                    x.Vehicle.VehicleStatus,
-                    x.Vehicle.BodyType.ToBodyTypeResponse(mapper),
-                    x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
-                    x.Vehicle.PassengerCount,
-            new FullPowerTrainResponse(
-                        x.Vehicle.PowerTrain.Id,
-                        x.Vehicle.PowerTrain.PowerTrainType,
-                        x.Vehicle.PowerTrain.HorsePower,
-                        x.Vehicle.PowerTrain.Torque,
-                        x.Vehicle.PowerTrain.CombinedRangeMiles,
-                        x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
-                        x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null,
-                        x.Vehicle.PowerTrain.BatteryCapacityKWh,
-                        x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
-                        x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
-                        x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
-                        x.Vehicle.PowerTrain.EngineSize,
-                        x.Vehicle.PowerTrain.Cylinders
-                        ),
-                    x.Vehicle.VehiclePrice),
-                x.Customer.ToCustomerResponse(mapper),
-                x.StartRentDate,
-                x.ExpectedEndRentDate,
-                x.ExpectedAmount
-            )).OrderByDescending(x => x.StartDate);
+            .ToFullRentedVehicleResponses(mapper)
+            .OrderByDescending(x => x.StartDate);
 
         var result = await PaginatedList<FullRentedVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -271,35 +193,25 @@ public class RentServices(AppDbContext appDbContext, IMapper mapper,
     {
 
         var query = appDbContext.RentVehicles.AsNoTracking()
-            .Include(x => x.Customer)
-            .Include(x => x.Payment)
-            .Include(x => x.Vehicle)
-                .ThenInclude(x => x.Model)
-                    .ThenInclude(x => x.Make)
-            .Include(x => x.Vehicle.BodyType)
-            .Include(x => x.Vehicle.TransmissionType)
-            .Include(x => x.Vehicle.PowerTrain)
-            .Include(x => x.Vehicle.PowerTrain.ChargePort)
-            .Include(x => x.Vehicle.PowerTrain.FuelDelivery)
-            .Include(x => x.Vehicle.PowerTrain.FuleType)
-            .Include(x => x.Vehicle.PowerTrain.Aspiration)
             .Where(x => x.ExpectedEndRentDate.Date == DateTime.UtcNow.Date)
-            .Select(x => new FullRentVehicleResponse(
-                x.Id, new VehicleResponse(x.Vehicle.Id, x.Vehicle.VIN,
-                new FullModelResponse(x.Vehicle.Model.Id, x.Vehicle.Model.Make.ToMakeResponse(mapper), x.Vehicle.Model.ModelName, x.Vehicle.Model.ProductionYear),
-                x.Vehicle.AddDate, x.Vehicle.RangeMiles, x.Vehicle.InteriorColor, x.Vehicle.ExteriorColor, x.Vehicle.VehicleStatus,
-                x.Vehicle.BodyType.ToBodyTypeResponse(mapper), x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
-                x.Vehicle.PassengerCount,
-                new FullPowerTrainResponse(x.Vehicle.PowerTrain.Id, x.Vehicle.PowerTrain.PowerTrainType,
-                x.Vehicle.PowerTrain.HorsePower, x.Vehicle.PowerTrain.Torque, x.Vehicle.PowerTrain.CombinedRangeMiles, x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
-                x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null, x.Vehicle.PowerTrain.BatteryCapacityKWh,
-                x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
-                x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
-                x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
-                x.Vehicle.PowerTrain.EngineSize, x.Vehicle.PowerTrain.Cylinders), x.Vehicle.VehiclePrice), x.Customer.ToCustomerResponse(mapper),
-                x.StartAtMile, x.EndAtMile != null ? (int)x.EndAtMile : 0, x.StartRentDate, x.ExpectedEndRentDate, x.ActualEndRentDate != null ? (DateTime)x.ActualEndRentDate : default(DateTime), x.ExpectedAmount,
-                x.DamageAmount, x.DamageDescription, x.Amount != null ? (int)x.Amount : 0, x.PayLater, x.Payment!.ToPaymentResponse(mapper)))
-                .OrderByDescending(x => x.StartRentDate);
+            .ToFullRentVehicleResponses(mapper);
+
+            //.Select(x => new FullRentVehicleResponse(
+            //    x.Id, new VehicleResponse(x.Vehicle.Id, x.Vehicle.VIN,
+            //    new FullModelResponse(x.Vehicle.Model.Id, x.Vehicle.Model.Make.ToMakeResponse(mapper), x.Vehicle.Model.ModelName, x.Vehicle.Model.ProductionYear),
+            //    x.Vehicle.AddDate, x.Vehicle.RangeMiles, x.Vehicle.InteriorColor, x.Vehicle.ExteriorColor, x.Vehicle.VehicleStatus,
+            //    x.Vehicle.BodyType.ToBodyTypeResponse(mapper), x.Vehicle.TransmissionType.ToTransmissionTypeResponse(mapper),
+            //    x.Vehicle.PassengerCount,
+            //    new FullPowerTrainResponse(x.Vehicle.PowerTrain.Id, x.Vehicle.PowerTrain.PowerTrainType,
+            //    x.Vehicle.PowerTrain.HorsePower, x.Vehicle.PowerTrain.Torque, x.Vehicle.PowerTrain.CombinedRangeMiles, x.Vehicle.PowerTrain.ElectricOnlyRangeMiles,
+            //    x.Vehicle.PowerTrain.ChargePort != null ? x.Vehicle.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null, x.Vehicle.PowerTrain.BatteryCapacityKWh,
+            //    x.Vehicle.PowerTrain.FuelDelivery != null ? x.Vehicle.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
+            //    x.Vehicle.PowerTrain.FuleType != null ? x.Vehicle.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
+            //    x.Vehicle.PowerTrain.Aspiration != null ? x.Vehicle.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+            //    x.Vehicle.PowerTrain.EngineSize, x.Vehicle.PowerTrain.Cylinders), x.Vehicle.VehiclePrice), x.Customer.ToCustomerResponse(mapper),
+            //    x.StartAtMile, x.EndAtMile != null ? (int)x.EndAtMile : 0, x.StartRentDate, x.ExpectedEndRentDate, x.ActualEndRentDate != null ? (DateTime)x.ActualEndRentDate : default(DateTime), x.ExpectedAmount,
+            //    x.DamageAmount, x.DamageDescription, x.Amount != null ? (int)x.Amount : 0, x.PayLater, x.Payment!.ToPaymentResponse(mapper)))
+            //    .OrderByDescending(x => x.StartRentDate);
 
         var result = await PaginatedList<FullRentVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 

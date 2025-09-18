@@ -101,37 +101,15 @@ public class VehicleServices(
     public async Task<Result<PaginatedList<VehicleResponse>>> GetAllVehicles
         (bool availableOnly, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var query = appDbContext.Vehicles.AsNoTracking()
-            .Include(x => x.BodyType)
-            .Include(x => x.TransmissionType)
-            .Include(x => x.Model)
-                .ThenInclude(x => x.Make)
-            .Include(x => x.PowerTrain)
-                .ThenInclude(x => x.ChargePort)
-            .Include(x => x.PowerTrain.FuelDelivery)
-            .Include(x => x.PowerTrain.FuleType)
-            .Include(x => x.PowerTrain.Aspiration)
+        var query = appDbContext.Vehicles
             .Where(x => availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
-            .Select(x => new VehicleResponse(
-                x.Id, x.VIN, new FullModelResponse(x.Model.Id, x.Model.Make.ToMakeResponse(mapper), x.Model.ModelName, x.Model.ProductionYear),
-                x.AddDate, x.RangeMiles, x.InteriorColor, x.ExteriorColor, x.VehicleStatus, x.BodyType.ToBodyTypeResponse(mapper),
-                x.TransmissionType.ToTransmissionTypeResponse(mapper), x.PassengerCount,
-                new FullPowerTrainResponse(x.PowerTrain.Id, x.PowerTrain.PowerTrainType, x.PowerTrain.HorsePower,
-                x.PowerTrain.Torque, x.PowerTrain.CombinedRangeMiles, x.PowerTrain.ElectricOnlyRangeMiles,
-                (x.PowerTrain.ChargePort != null ? x.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null),
-                x.PowerTrain.BatteryCapacityKWh,
-                (x.PowerTrain.FuelDelivery != null ? x.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.PowerTrain.FuleType != null ? x.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.PowerTrain.Aspiration != null ? x.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null), x.PowerTrain.EngineSize, x.PowerTrain.Cylinders),
-                x.VehiclePrice
-            ))
+            .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }
-
 
     public async Task<Result<PaginatedList<VehicleResponse>>> GetVehiclesByPowerTrainType   //TODO : check the code
         (VehiclePowerTrainRequest vehiclePowerTrainRequest, bool availableOnly, RequestFilters filters, CancellationToken cancellationToken = default)
@@ -140,31 +118,11 @@ public class VehicleServices(
         if (test.SingleOrDefault(x => x == vehiclePowerTrainRequest.PowerTrain) is not { } powerTrainType)
             return Result.Failure<PaginatedList<VehicleResponse>>(VehicleDetailsErrors.WrongePowerTrain);
 
-        var query = appDbContext.Vehicles.AsNoTracking()
-            .Include(x => x.BodyType)
-            .Include(x => x.TransmissionType)
-            .Include(x => x.Model)
-                .ThenInclude(x => x.Make)
+        var query = appDbContext.Vehicles
             .Include(x => x.PowerTrain)
-                .ThenInclude(x => x.ChargePort)
-            .Include(x => x.PowerTrain.FuelDelivery)
-            .Include(x => x.PowerTrain.FuleType)
-            .Include(x => x.PowerTrain.Aspiration)
             .Where(x => x.PowerTrain.PowerTrainType == powerTrainType &&
                 availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
-            .Select(x => new VehicleResponse(
-                x.Id, x.VIN, new FullModelResponse(x.Model.Id, x.Model.Make.ToMakeResponse(mapper), x.Model.ModelName, x.Model.ProductionYear),
-                x.AddDate, x.RangeMiles, x.InteriorColor, x.ExteriorColor, x.VehicleStatus, x.BodyType.ToBodyTypeResponse(mapper),
-                x.TransmissionType.ToTransmissionTypeResponse(mapper), x.PassengerCount,
-                new FullPowerTrainResponse(x.PowerTrain.Id, x.PowerTrain.PowerTrainType, x.PowerTrain.HorsePower,
-                x.PowerTrain.Torque, x.PowerTrain.CombinedRangeMiles, x.PowerTrain.ElectricOnlyRangeMiles,
-                (x.PowerTrain.ChargePort != null ? x.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null),
-                x.PowerTrain.BatteryCapacityKWh,
-                (x.PowerTrain.FuelDelivery != null ? x.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.PowerTrain.FuleType != null ? x.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.PowerTrain.Aspiration != null ? x.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null), x.PowerTrain.EngineSize, x.PowerTrain.Cylinders),
-                x.VehiclePrice
-            ))
+            .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
@@ -178,31 +136,10 @@ public class VehicleServices(
         if (!(await appDbContext.PowerTrains.AnyAsync(x => x.Id == powerTrainID, cancellationToken)))
             return Result.Failure<PaginatedList<VehicleResponse>>(VehicleDetailsErrors.NotFoundPowerTrain);
 
-        var query = appDbContext.Vehicles.AsNoTracking()
-            .Include(x => x.BodyType)
-            .Include(x => x.TransmissionType)
-            .Include(x => x.Model)
-                .ThenInclude(x => x.Make)
-            .Include(x => x.PowerTrain)
-                .ThenInclude(x => x.ChargePort)
-            .Include(x => x.PowerTrain.FuelDelivery)
-            .Include(x => x.PowerTrain.FuleType)
-            .Include(x => x.PowerTrain.Aspiration)
+        var query = appDbContext.Vehicles
             .Where(x => x.PowerTrainID == powerTrainID &&
                 availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
-            .Select(x => new VehicleResponse(
-                x.Id, x.VIN, new FullModelResponse(x.Model.Id, x.Model.Make.ToMakeResponse(mapper), x.Model.ModelName, x.Model.ProductionYear),
-                x.AddDate, x.RangeMiles, x.InteriorColor, x.ExteriorColor, x.VehicleStatus, x.BodyType.ToBodyTypeResponse(mapper),
-                x.TransmissionType.ToTransmissionTypeResponse(mapper), x.PassengerCount,
-                new FullPowerTrainResponse(x.PowerTrain.Id, x.PowerTrain.PowerTrainType, x.PowerTrain.HorsePower,
-                x.PowerTrain.Torque, x.PowerTrain.CombinedRangeMiles, x.PowerTrain.ElectricOnlyRangeMiles,
-                (x.PowerTrain.ChargePort != null ? x.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null),
-                x.PowerTrain.BatteryCapacityKWh,
-                (x.PowerTrain.FuelDelivery != null ? x.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.PowerTrain.FuleType != null ? x.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.PowerTrain.Aspiration != null ? x.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null), x.PowerTrain.EngineSize, x.PowerTrain.Cylinders),
-                x.VehiclePrice
-            ))
+            .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
@@ -213,37 +150,23 @@ public class VehicleServices(
     public async Task<Result<VehicleResponse>> GetVehicle
         (string vehicleID, bool availavle = true, CancellationToken cancellationToken = default)
     {
-
-        var query = await appDbContext.Vehicles.AsNoTracking()
+        var vehicleResponse = (await appDbContext.Vehicles
             .Include(x => x.BodyType)
-            .Include(x => x.TransmissionType)
             .Include(x => x.Model)
-                .ThenInclude(x => x.Make)
+            .Include(x => x.Model.Make)
+            .Include(x => x.TransmissionType)
             .Include(x => x.PowerTrain)
-                .ThenInclude(x => x.ChargePort)
-            .Include(x => x.PowerTrain.FuelDelivery)
+            .Include(x => x.PowerTrain.ChargePort)
             .Include(x => x.PowerTrain.FuleType)
+            .Include(x => x.PowerTrain.FuelDelivery)
             .Include(x => x.PowerTrain.Aspiration)
-            .SingleOrDefaultAsync(x => x.Id == vehicleID, cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == vehicleID, cancellationToken))?
+            .ToFullVehicleResponse(mapper);
 
-        if(query is null)
+        if(vehicleResponse is null)
             return Result.Failure<VehicleResponse>(VehicleErrors.NotFoundVehicle);
-        if(availavle && query.VehicleStatus != VehiclesStatus.available.ToString())
+        if(availavle && vehicleResponse.VehicleStatus != VehiclesStatus.available.ToString())
             return Result.Failure<VehicleResponse>(VehicleErrors.UnavailableVehicle);
-
-        var vehicleResponse = new VehicleResponse(
-            query.Id, query.VIN, new FullModelResponse(query.Model.Id, query.Model.Make.ToMakeResponse(mapper), query.Model.ModelName, query.Model.ProductionYear),
-            query.AddDate, query.RangeMiles, query.InteriorColor, query.ExteriorColor, query.VehicleStatus, query.BodyType.ToBodyTypeResponse(mapper),
-            query.TransmissionType.ToTransmissionTypeResponse(mapper), query.PassengerCount,
-            new FullPowerTrainResponse(query.PowerTrain.Id, query.PowerTrain.PowerTrainType, query.PowerTrain.HorsePower,
-            query.PowerTrain.Torque, query.PowerTrain.CombinedRangeMiles, query.PowerTrain.ElectricOnlyRangeMiles,
-            (query.PowerTrain.ChargePort != null ? query.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null),
-            query.PowerTrain.BatteryCapacityKWh,
-            (query.PowerTrain.FuelDelivery != null ? query.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-            (query.PowerTrain.FuleType != null ? query.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null),
-            (query.PowerTrain.Aspiration != null ? query.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null), query.PowerTrain.EngineSize, query.PowerTrain.Cylinders),
-            query.VehiclePrice
-        );
 
         return Result.Success(vehicleResponse);
     }
@@ -266,31 +189,10 @@ public class VehicleServices(
     public async Task<Result<PaginatedList<VehicleResponse>>> SearchForVehicle
         (string modelName, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-
-        var query = appDbContext.Vehicles.AsNoTracking()
-            .Include(x => x.BodyType)
-            .Include(x => x.TransmissionType)
+        var query = appDbContext.Vehicles
             .Include(x => x.Model)
-                .ThenInclude(x => x.Make)
-            .Include(x => x.PowerTrain)
-                .ThenInclude(x => x.ChargePort)
-            .Include(x => x.PowerTrain.FuelDelivery)
-            .Include(x => x.PowerTrain.FuleType)
-            .Include(x => x.PowerTrain.Aspiration)
             .Where(x => x.Model.ModelName.Contains(modelName))
-            .Select(x => new VehicleResponse(
-                x.Id, x.VIN, new FullModelResponse(x.Model.Id, x.Model.Make.ToMakeResponse(mapper), x.Model.ModelName, x.Model.ProductionYear),
-                x.AddDate, x.RangeMiles, x.InteriorColor, x.ExteriorColor, x.VehicleStatus, x.BodyType.ToBodyTypeResponse(mapper),
-                x.TransmissionType.ToTransmissionTypeResponse(mapper), x.PassengerCount,
-                new FullPowerTrainResponse(x.PowerTrain.Id, x.PowerTrain.PowerTrainType, x.PowerTrain.HorsePower,
-                x.PowerTrain.Torque, x.PowerTrain.CombinedRangeMiles, x.PowerTrain.ElectricOnlyRangeMiles,
-                (x.PowerTrain.ChargePort != null ? x.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null),
-                x.PowerTrain.BatteryCapacityKWh,
-                (x.PowerTrain.FuelDelivery != null ? x.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.PowerTrain.FuleType != null ? x.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.PowerTrain.Aspiration != null ? x.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null), x.PowerTrain.EngineSize, x.PowerTrain.Cylinders),
-                x.VehiclePrice
-            ))
+            .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
@@ -349,31 +251,9 @@ public class VehicleServices(
     public async Task<Result<PaginatedList<VehicleResponse>>> VehicleByStatus
         (VehicleStatusRequest vehicleStatusRequest, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-
-        var query = appDbContext.Vehicles.AsNoTracking()
-            .Include(x => x.BodyType)
-            .Include(x => x.TransmissionType)
-            .Include(x => x.Model)
-                .ThenInclude(x => x.Make)
-            .Include(x => x.PowerTrain)
-                .ThenInclude(x => x.ChargePort)
-            .Include(x => x.PowerTrain.FuelDelivery)
-            .Include(x => x.PowerTrain.FuleType)
-            .Include(x => x.PowerTrain.Aspiration)
+        var query = appDbContext.Vehicles
             .Where(x => x.VehicleStatus == vehicleStatusRequest.Status)
-            .Select(x => new VehicleResponse(
-                x.Id, x.VIN, new FullModelResponse(x.Model.Id, x.Model.Make.ToMakeResponse(mapper), x.Model.ModelName, x.Model.ProductionYear),
-                x.AddDate, x.RangeMiles, x.InteriorColor, x.ExteriorColor, x.VehicleStatus, x.BodyType.ToBodyTypeResponse(mapper),
-                x.TransmissionType.ToTransmissionTypeResponse(mapper), x.PassengerCount,
-                new FullPowerTrainResponse(x.PowerTrain.Id, x.PowerTrain.PowerTrainType, x.PowerTrain.HorsePower,
-                x.PowerTrain.Torque, x.PowerTrain.CombinedRangeMiles, x.PowerTrain.ElectricOnlyRangeMiles,
-                (x.PowerTrain.ChargePort != null ? x.PowerTrain.ChargePort.ToChargePortResponse(mapper) : null),
-                x.PowerTrain.BatteryCapacityKWh,
-                (x.PowerTrain.FuelDelivery != null ? x.PowerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.PowerTrain.FuleType != null ? x.PowerTrain.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.PowerTrain.Aspiration != null ? x.PowerTrain.Aspiration.ToAspirationResponse(mapper) : null), x.PowerTrain.EngineSize, x.PowerTrain.Cylinders),
-                x.VehiclePrice
-            ))
+            .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);

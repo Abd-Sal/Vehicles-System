@@ -295,12 +295,7 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
     public async Task<Result<PaginatedList<FullModelResponse>>> GetAllFullModels
         (RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var query = appDbContext.Models.AsNoTracking()
-            .Include(x => x.Make)
-            .Select(x => new FullModelResponse(
-                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
-            ));
-
+        var query = appDbContext.Models.ToFullModellResponse(mapper);
         var result = await PaginatedList<FullModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
@@ -321,21 +316,9 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
     public async Task<Result<PaginatedList<FullPowerTrainResponse>>> GetAllFullPowerTrains
         (RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var query = appDbContext.PowerTrains.AsNoTracking()
-            .Include(x => x.ChargePort)
-            .Include(x => x.FuelDelivery)
-            .Include(x => x.FuleType)
-            .Include(x => x.Aspiration)
-            .Select(x => new FullPowerTrainResponse(
-                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles,
-                x.ElectricOnlyRangeMiles, (x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null),
-                x.BatteryCapacityKWh, (x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null),
-                x.EngineSize, x.Cylinders
-
-            ));
-
+        var query = appDbContext.PowerTrains
+            .ToFullPowerTrain(mapper);
+ 
         var result = await PaginatedList<FullPowerTrainResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
@@ -477,11 +460,11 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
     public async Task<Result<FullModelResponse>> GetModelByID
         (string modelID, CancellationToken cancellationToken = default)
     {
-        var result = await appDbContext.Models.AsNoTracking()
+        var result = (await appDbContext.Models
             .Include(x => x.Make)
-            .Select(x => new FullModelResponse(
-                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
-            )).SingleOrDefaultAsync(x => x.Id == modelID, cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == modelID, cancellationToken))?
+            .ToFullModel(mapper);
+
         if(result is null)
             return Result.Failure<FullModelResponse>(VehicleDetailsErrors.NotFoundModel);
 
@@ -494,12 +477,9 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
         if (!(await appDbContext.Makes.AnyAsync(x => x.Id == makeID, cancellationToken)))
             return Result.Failure<PaginatedList<FullModelResponse>>(VehicleDetailsErrors.NotFoundMake);
 
-        var query = appDbContext.Models.AsNoTracking()
-            .Include(x => x.Make)
+        var query = appDbContext.Models
             .Where(x => x.MakeID == makeID)
-            .Select(x => new FullModelResponse(
-                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
-            ));
+            .ToFullModellResponse(mapper);           
 
         var result = await PaginatedList<FullModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -509,12 +489,9 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
     public async Task<Result<PaginatedList<FullModelResponse>>> GetModelsByName
         (string modelName, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var query = appDbContext.Models.AsNoTracking()
-            .Include(x => x.Make)
+        var query = appDbContext.Models
             .Where(x => x.ModelName.ToLower().Contains(modelName))
-            .Select(x => new FullModelResponse(
-                x.Id, x.Make.ToMakeResponse(mapper), x.ModelName, x.ProductionYear
-            ));
+            .ToFullModellResponse(mapper);
 
         var result = await PaginatedList<FullModelResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -524,19 +501,13 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
     public async Task<Result<FullPowerTrainResponse>> GetPowerTrainByID
         (string powerTrainID, CancellationToken cancellationToken = default)
     {
-        var result = await appDbContext.PowerTrains.AsNoTracking()
+        var result = (await appDbContext.PowerTrains
             .Include(x => x.ChargePort)
-            .Include(x => x.FuelDelivery)
             .Include(x => x.FuleType)
+            .Include(x => x.FuelDelivery)
             .Include(x => x.Aspiration)
-            .Select(x => new FullPowerTrainResponse(
-                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles, x.ElectricOnlyRangeMiles,
-                (x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null), x.BatteryCapacityKWh,
-                (x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null),
-                x.EngineSize, x.Cylinders
-            )).SingleOrDefaultAsync(x => x.Id == powerTrainID, cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == powerTrainID, cancellationToken))?
+            .ToFullPowerTrain(mapper);
 
         if (result is null)
             return Result.Failure<FullPowerTrainResponse>(VehicleDetailsErrors.NotFoundModel);
@@ -547,21 +518,9 @@ public class VehicleDetailsServices(AppDbContext appDbContext, IMapper mapper) :
     public async Task<Result<PaginatedList<FullPowerTrainResponse>>> GetPowerTrainsByName
         (string powerTrainName, RequestFilters filters, CancellationToken cancellationToken = default)
     {
-
-        var query = appDbContext.PowerTrains.AsNoTracking()
-            .Include(x => x.ChargePort)
-            .Include(x => x.FuelDelivery)
-            .Include(x => x.FuleType)
-            .Include(x => x.Aspiration)
+        var query = appDbContext.PowerTrains
             .Where(x => x.PowerTrainType == powerTrainName)
-            .Select(x => new FullPowerTrainResponse(
-                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles, x.ElectricOnlyRangeMiles,
-                (x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null), x.BatteryCapacityKWh,
-                (x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null),
-                (x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null),
-                (x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null),
-                x.EngineSize, x.Cylinders
-            ));
+            .ToFullPowerTrain(mapper);
 
         var result = await PaginatedList<FullPowerTrainResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
