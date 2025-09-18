@@ -1,7 +1,4 @@
-﻿using SellingRentingCarsSystem.API.DTOs;
-using SellingRentingCarsSystem.API.Models;
-
-namespace SellingRentingCarsSystem.API.AutoMapping;
+﻿namespace SellingRentingCarsSystem.API.AutoMapping;
 
 public static class AutoMapperExtensions
 {
