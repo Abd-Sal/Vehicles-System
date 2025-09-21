@@ -2,14 +2,12 @@
 
 public class VehicleServices(
         AppDbContext appDbContext, IMapper mapper,
-        IVehicleDetailsServices vehicleDetailsServices,
         IPaymentServices paymentServices, IOptionsMonitor<ImagesProperties> imageOptions,
         IWebHostEnvironment webHostEnvironment
     ) : IVehicleServices
 {
     private readonly AppDbContext appDbContext = appDbContext;
     private readonly IMapper mapper = mapper;
-    private readonly IVehicleDetailsServices vehicleDetailsServices = vehicleDetailsServices;
     private readonly IPaymentServices paymentServices = paymentServices;
     private readonly IWebHostEnvironment webHostEnvironment = webHostEnvironment;
     private readonly ImagesProperties imageOptions = imageOptions.CurrentValue;
@@ -40,32 +38,6 @@ public class VehicleServices(
         return Result.Success(vehicleFeature.ToVehicleFeatureResponse(mapper));
     }
 
-    public async Task<Result<BriefVehicleResponse>> AddFullVehicle      //TODO : enhance the code in private method and in this method
-        (IVehicleRequest vehicleRequest, CancellationToken cancellationToken = default)
-    {
-        if(vehicleRequest is null)
-            return Result.Failure<BriefVehicleResponse>(VehicleErrors.NullVehicle);
-
-        Result<BriefVehicleResponse>? result = null;
-        using (var trans = appDbContext.Database.BeginTransactionAsync())
-        {
-            var fullCombination = vehicleRequest as FullCombinationVehicleRequest;
-            if (fullCombination is not null)
-                result = await AddFullCombinationVehicle(fullCombination, cancellationToken);
-
-            var fullElectric = vehicleRequest as FullElectricVehicleRequest;
-            if (fullElectric is not null)
-                result = await AddFullElectricVehicle(fullElectric, cancellationToken);
-
-            var fullHybrid = vehicleRequest as FullHybridVehicleRequest;
-            if (fullHybrid is not null)
-                result = await AddFullHybridVehicle(fullHybrid, cancellationToken);
-        }
-        if(result is null)
-            return Result.Failure<BriefVehicleResponse>(VehicleErrors.NullVehicle);
-        return result;
-    }
-
     public async Task<Result<BriefVehicleResponse>> AddVehicle
         (VehicleRequest vehicleRequest, CancellationToken cancellationToken = default)
     {
@@ -80,10 +52,6 @@ public class VehicleServices(
 
         if (!(await appDbContext.BodyTypes.AnyAsync(x => x.Id == vehicleRequest.BodyTypeID, cancellationToken)))
             return Result.Failure<BriefVehicleResponse>(VehicleDetailsErrors.NotFoundBodyType);
-
-        if (vehicleRequest.FuelTypeID is not null &&
-            !(await appDbContext.FuelTypes.AnyAsync(x => x.Id == vehicleRequest.FuelTypeID, cancellationToken)))
-            return Result.Failure<BriefVehicleResponse>(VehicleDetailsErrors.NotfoundFuelType);
 
         if(await appDbContext.TransmissionTypes.AnyAsync(x => x.Id == vehicleRequest.TransmissionTypeID, cancellationToken))
             return Result.Failure<BriefVehicleResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
@@ -102,7 +70,7 @@ public class VehicleServices(
         (bool availableOnly, RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var query = appDbContext.Vehicles
-            .Where(x => availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
+            .Where(x => !availableOnly || x.VehicleStatus == VehiclesStatus.available.ToString())
             .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
@@ -120,8 +88,8 @@ public class VehicleServices(
 
         var query = appDbContext.Vehicles
             .Include(x => x.PowerTrain)
-            .Where(x => x.PowerTrain.PowerTrainType == powerTrainType &&
-                availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
+            .Where(x => x.PowerTrain.PowerTrainType != powerTrainType ||
+                !availableOnly || x.VehicleStatus == VehiclesStatus.available.ToString())
             .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
@@ -137,8 +105,8 @@ public class VehicleServices(
             return Result.Failure<PaginatedList<VehicleResponse>>(VehicleDetailsErrors.NotFoundPowerTrain);
 
         var query = appDbContext.Vehicles
-            .Where(x => x.PowerTrainID == powerTrainID &&
-                availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
+            .Where(x => x.PowerTrainID != powerTrainID ||
+                !availableOnly || x.VehicleStatus == VehiclesStatus.available.ToString())
             .ToVehicleResponse(mapper)
             .OrderByDescending(x => x.AddDate);
 
@@ -203,7 +171,7 @@ public class VehicleServices(
     public async Task<Result<VehicleStatusResponse>> StatusVehicle
         (string vehicleID, CancellationToken cancellationToken = default)
     {
-        if ((await appDbContext.Vehicles.FindAsync(vehicleID, cancellationToken)) is not { } vehicle)
+        if ((await appDbContext.Vehicles.FindAsync([vehicleID, cancellationToken], cancellationToken: cancellationToken)) is not { } vehicle)
             return Result.Failure<VehicleStatusResponse>(VehicleErrors.NotFoundVehicle);
         var vehicleStatusResponse = vehicle.ToVehicleStatusResponse();
         return Result.Success(vehicleStatusResponse);
@@ -212,7 +180,7 @@ public class VehicleServices(
     public async Task<Result> UpdateVehicle
         (string vehicleID, VehicleRequest vehicleRequest, CancellationToken cancellationToken = default)
     {
-        if ((await appDbContext.Vehicles.FindAsync(vehicleID, cancellationToken)) is not { } vehicle)
+        if ((await appDbContext.Vehicles.FindAsync([vehicleID, cancellationToken], cancellationToken: cancellationToken)) is not { } vehicle)
             return Result.Failure(VehicleErrors.NotFoundVehicle);
 
         if (await appDbContext.Vehicles.AnyAsync(x => x.Id != vehicleID && x.VIN == vehicleRequest.VIN, cancellationToken))
@@ -223,10 +191,6 @@ public class VehicleServices(
 
         if (!(await appDbContext.BodyTypes.AnyAsync(x => x.Id == vehicleRequest.BodyTypeID, cancellationToken)))
             return Result.Failure(VehicleDetailsErrors.NotFoundBodyType);
-
-        if (vehicleRequest.FuelTypeID is not null &&
-            !(await appDbContext.FuelTypes.AnyAsync(x => x.Id == vehicleRequest.FuelTypeID, cancellationToken)))
-            return Result.Failure(VehicleDetailsErrors.NotfoundFuelType);
 
         if (!(await appDbContext.PowerTrains.AnyAsync(x => x.Id == vehicleRequest.PowerTrainID, cancellationToken)))
             return Result.Failure(VehicleDetailsErrors.NotFoundPowerTrain);
@@ -282,12 +246,12 @@ public class VehicleServices(
             .Select(x => new Tag { TagName = x })
             .ToList();
 
-        if (newTags.Any())
-            await appDbContext.Tags.AddRangeAsync(newTags.ToList(), cancellationToken);
+        if (newTags.Count != 0)
+            await appDbContext.Tags.AddRangeAsync([.. newTags], cancellationToken);
 
         var AllTags = oldTags.Concat(newTags);
 
-        await appDbContext.VehileTags.AddRangeAsync(AllTags.Select(x => new VehicleTags { TagID = x.Id, VehicleID = vehicleID }).ToList(), cancellationToken);
+        await appDbContext.VehileTags.AddRangeAsync([.. AllTags.Select(x => new VehicleTags { TagID = x.Id, VehicleID = vehicleID })], cancellationToken);
         await appDbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success(AllTags.ToTagResponses(mapper));
@@ -296,7 +260,7 @@ public class VehicleServices(
     public async Task<Result> RemoveVehicle
         (string vehicleID, CancellationToken cancellationToken = default)
     {
-        if (await appDbContext.Vehicles.FindAsync(vehicleID, cancellationToken) is not { } vehicle)
+        if (await appDbContext.Vehicles.FindAsync([vehicleID, cancellationToken], cancellationToken: cancellationToken) is not { } vehicle)
             return Result.Failure(VehicleErrors.NotFoundVehicle);
 
         if (vehicle.VehicleStatus != VehiclesStatus.available.ToString())
@@ -334,11 +298,11 @@ public class VehicleServices(
         if (buyVehicleRequest is null)
             return Result.Failure<BriefVehicleResponse>(VehicleErrors.NullVehicle);
 
-        var addVehicle = await AddVehicle(buyVehicleRequest.Vehicle);
+        var addVehicle = await AddVehicle(buyVehicleRequest.Vehicle, cancellationToken);
         if(addVehicle.IsFailure)
             return Result.Failure<BriefVehicleResponse>(addVehicle.Error);
         
-        var doPayment = await paymentServices.DoPayment(buyVehicleRequest.Payment);
+        var doPayment = await paymentServices.DoPayment(buyVehicleRequest.Payment, cancellationToken);
         if(doPayment.IsFailure)
             return Result.Failure<BriefVehicleResponse>(doPayment.Error);
 
@@ -422,152 +386,6 @@ public class VehicleServices(
         var contentType = ImageHelper.GetContentType(imagePath);
         var fullImagePath = Path.Combine(env, imagePath);
         return Result.Success((fullImagePath, contentType));
-    }
-
-
-    //Private Methods   TODO : do refactoring for this code in these 3 private methods
-    private async Task<Result<BriefVehicleResponse>> AddFullCombinationVehicle
-        (FullCombinationVehicleRequest fullCombinationVehicleRequest, CancellationToken cancellationToken = default)
-    {
-        if (fullCombinationVehicleRequest is null)
-            return Result.Failure<BriefVehicleResponse>(VehicleErrors.NullVehicle);
-
-        //Model
-        var modelResult = await vehicleDetailsServices.AddModel(fullCombinationVehicleRequest.Model);
-        if(modelResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(modelResult.Error);
-
-        //BodyType
-        var bodyTypeResult = await vehicleDetailsServices.AddBodyType(fullCombinationVehicleRequest.BodyType);
-        if (bodyTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(bodyTypeResult.Error);
-
-        //FuelType
-        var fuelTypeResult = await vehicleDetailsServices.AddFuelType(fullCombinationVehicleRequest.FuelType);
-        if (fuelTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(fuelTypeResult.Error);
-
-        //TransmissionType
-        var transmissionTypeResult = await vehicleDetailsServices.AddTransmissionType(fullCombinationVehicleRequest.TransmissionType);
-        if (transmissionTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(transmissionTypeResult.Error);
-
-        //CombinationPowerTrain
-        var combinatinoPowerTrainResult = await vehicleDetailsServices.AddCombinationPowerTrain(fullCombinationVehicleRequest.PowerTrain);
-        if (combinatinoPowerTrainResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(combinatinoPowerTrainResult.Error);
-
-        var vehicle = new Vehicle
-        {
-            VIN = fullCombinationVehicleRequest.VIN,
-            ModelID = modelResult.Value.Id,
-            PowerTrainID = combinatinoPowerTrainResult.Value.Id,
-            TransmissionTypeID = transmissionTypeResult.Value.Id,
-            BodyTypeID = bodyTypeResult.Value.Id,
-            InteriorColor = fullCombinationVehicleRequest.InteriorColor,
-            ExteriorColor = fullCombinationVehicleRequest.ExteriorColor,
-            VehiclePrice = fullCombinationVehicleRequest.VehiclePrice
-        };
-
-        var add = await appDbContext.Vehicles.AddAsync(vehicle, cancellationToken);
-        var result = await appDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success(vehicle.ToBriefVehicleResponse(mapper));
-    }
-
-    private async Task<Result<BriefVehicleResponse>> AddFullElectricVehicle
-        (FullElectricVehicleRequest fullElectricVehicleRequest, CancellationToken cancellationToken = default)
-    {
-        if (fullElectricVehicleRequest is null)
-            return Result.Failure<BriefVehicleResponse>(VehicleErrors.NullVehicle);
-
-        //Model
-        var modelResult = await vehicleDetailsServices.AddModel(fullElectricVehicleRequest.Model);
-        if (modelResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(modelResult.Error);
-
-        //BodyType
-        var bodyTypeResult = await vehicleDetailsServices.AddBodyType(fullElectricVehicleRequest.BodyType);
-        if (bodyTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(bodyTypeResult.Error);
-
-        //TransmissionType          //TODO : check is the electric vehicle has Transmission (accelerating box)
-        var transmissionTypeResult = await vehicleDetailsServices.AddTransmissionType(fullElectricVehicleRequest.TransmissionType);
-        if (transmissionTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(transmissionTypeResult.Error);
-
-        //ElectricPowerTrain
-        var electricVehicleResult = await vehicleDetailsServices.AddElectricPowerTrain(fullElectricVehicleRequest.PowerTrain);
-        if (electricVehicleResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(electricVehicleResult.Error);
-
-        var vehicle = new Vehicle
-        {
-            VIN = fullElectricVehicleRequest.VIN,
-            ModelID = modelResult.Value.Id,
-            PowerTrainID = electricVehicleResult.Value.Id,
-            TransmissionTypeID = transmissionTypeResult.Value.Id,
-            BodyTypeID = bodyTypeResult.Value.Id,
-            InteriorColor = fullElectricVehicleRequest.InteriorColor,
-            ExteriorColor = fullElectricVehicleRequest.ExteriorColor,
-            VehiclePrice = fullElectricVehicleRequest.VehiclePrice
-        };
-
-        var add = await appDbContext.Vehicles.AddAsync(vehicle, cancellationToken);
-        var result = await appDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success(vehicle.ToBriefVehicleResponse(mapper));
-    }
-
-    private async Task<Result<BriefVehicleResponse>> AddFullHybridVehicle
-        (FullHybridVehicleRequest fullHybridVehicleRequest, CancellationToken cancellationToken = default)
-    {
-
-        if (fullHybridVehicleRequest is null)
-            return Result.Failure<BriefVehicleResponse>(VehicleErrors.NullVehicle);
-
-        //Model
-        var modelResult = await vehicleDetailsServices.AddModel(fullHybridVehicleRequest.Model);
-        if (modelResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(modelResult.Error);
-
-        //BodyType
-        var bodyTypeResult = await vehicleDetailsServices.AddBodyType(fullHybridVehicleRequest.BodyType);
-        if (bodyTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(bodyTypeResult.Error);
-
-        //TransmissionType
-        var transmissionTypeResult = await vehicleDetailsServices.AddTransmissionType(fullHybridVehicleRequest.TransmissionType);
-        if (transmissionTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(transmissionTypeResult.Error);
-
-        //FuelType
-        var fuelTypeResult = await vehicleDetailsServices.AddFuelType(fullHybridVehicleRequest.FuelType);
-        if (fuelTypeResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(fuelTypeResult.Error);
-
-        //HybridPowerTrain
-        var hybridVehicleResult = await vehicleDetailsServices.AddHybridPowerTrain(fullHybridVehicleRequest.PowerTrain);
-        if (hybridVehicleResult.IsFailure)
-            return Result.Failure<BriefVehicleResponse>(hybridVehicleResult.Error);
-
-        var vehicle = new Vehicle
-        {
-            VIN = fullHybridVehicleRequest.VIN,
-            ModelID = modelResult.Value.Id,
-            PowerTrainID = hybridVehicleResult.Value.Id,
-            TransmissionTypeID = transmissionTypeResult.Value.Id,
-            BodyTypeID = bodyTypeResult.Value.Id,
-            InteriorColor = fullHybridVehicleRequest.InteriorColor,
-            ExteriorColor = fullHybridVehicleRequest.ExteriorColor,
-            VehiclePrice = fullHybridVehicleRequest.VehiclePrice
-        };
-
-        var add = await appDbContext.Vehicles.AddAsync(vehicle, cancellationToken);
-        var result = await appDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success(vehicle.ToBriefVehicleResponse(mapper));
-
     }
 
 }

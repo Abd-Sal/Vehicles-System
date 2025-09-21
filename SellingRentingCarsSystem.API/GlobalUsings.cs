@@ -31,6 +31,8 @@ global using AutoMapper.QueryableExtensions;
 
 global using FluentValidation;
 
+global using SellingRentingCarsSystem.API.AutoMapping.Extensions;
+global using SellingRentingCarsSystem.API.AutoMapping.Profile;
 global using SellingRentingCarsSystem.API;
 global using SellingRentingCarsSystem.API.Models;
 global using SellingRentingCarsSystem.API.ResultsExtensions;

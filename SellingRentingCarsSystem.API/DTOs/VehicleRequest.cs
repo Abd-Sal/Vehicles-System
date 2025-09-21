@@ -6,7 +6,6 @@ public record VehicleRequest(
     string ExteriorColor,
     string InteriorColor,
     string BodyTypeID,
-    string? FuelTypeID,
     string TransmissionTypeID,
     string PowerTrainID,
     int RangeMiles,

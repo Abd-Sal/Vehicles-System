@@ -16,20 +16,48 @@ public class UnitOfWork : IUnitOfWork
         ILogger<MaintenanceServices> maintenanceLogger
         )
     {
+        VehicleDetailsAspirationServices = new VehicleDetailsAspirationServices(appDbContext, mapper);
+        VehicleDetailsBodyTypeServices = new VehicleDetailsBodyTypeServices(appDbContext, mapper);
+        VehicleDetailsChargePortServices = new VehicleDetailsChargePortServices(appDbContext, mapper);
+        VehicleDetailsFeatureServices = new VehicleDetailsFeatureServices(appDbContext, mapper);
+        VehicleDetailsFuelDeliveryServices = new VehicleDetailsFuelDeliveryServices(appDbContext, mapper);
+        VehicleDetailsFuelTypeServices = new VehicleDetailsFuelTypeServices(appDbContext, mapper);
+        VehicleDetailsMakeServices = new VehicleDetailsMakeServices(appDbContext, mapper);
+        VehicleDetailsModelServices = new VehicleDetailsModelServices(appDbContext, mapper);
+        VehicleDetailsPowerTrainServices = new VehicleDetailsPowerTrainServices(appDbContext, mapper);
+        VehicleDetailsTransmissionTypeServices = new VehicleDetailsTransmissionTypeServices(appDbContext, mapper);
         NotificationSender = new NotificationSender(emailOptions, notificationLogger);
-        VehicleDetailsServices = new VehicleDetailsServices(appDbContext, mapper);
         PaymentServices = new PaymentServices(appDbContext, mapper, paymentLogger);
         CustomerServices = new CustomerServices(appDbContext, mapper, customerLogger);
-        VehicleServices = new VehicleServices(appDbContext, mapper, VehicleDetailsServices, PaymentServices, imageOptions, webHostEnvironment);
+        VehicleServices = new VehicleServices(appDbContext, mapper, PaymentServices, imageOptions, webHostEnvironment);
         BookingServices = new BookingService(appDbContext, mapper, NotificationSender, bookingLogger);
         SellServices = new SellServices(appDbContext, mapper, PaymentServices, BookingServices, sellLogger);
         RentServices = new RentServices(appDbContext, mapper, BookingServices, PaymentServices, NotificationSender, rentLogger);
         AuthServices = new AuthServices(userManager, jwtProvider, NotificationSender, authLogger);
         MaintenanceServices = new MaintenanceServices(appDbContext, mapper, PaymentServices, BookingServices, maintenanceLogger);
     }
-    public IVehicleServices VehicleServices { get; }
 
-    public IVehicleDetailsServices VehicleDetailsServices { get; }
+    public IVehicleDetailsAspirationServices VehicleDetailsAspirationServices { get; }
+
+    public IVehicleDetailsFeatureServices VehicleDetailsFeatureServices { get; }
+
+    public IVehicleDetailsChargePortServices VehicleDetailsChargePortServices { get; }
+
+    public IVehicleDetailsBodyTypeServices VehicleDetailsBodyTypeServices { get; }
+
+    public IVehicleDetailsFuelDeliveryServices VehicleDetailsFuelDeliveryServices { get; }
+
+    public IVehicleDetailsFuelTypeServices VehicleDetailsFuelTypeServices { get; }
+
+    public IVehicleDetailsModelServices VehicleDetailsModelServices { get; }
+
+    public IVehicleDetailsMakeServices VehicleDetailsMakeServices { get; }
+
+    public IVehicleDetailsTransmissionTypeServices VehicleDetailsTransmissionTypeServices { get; }
+
+    public IVehicleDetailsPowerTrainServices VehicleDetailsPowerTrainServices { get; }
+
+    public IVehicleServices VehicleServices { get; }
 
     public ICustomerServices CustomerServices { get; }
 

@@ -8,7 +8,6 @@ public interface IVehicleServices
     Task<Result<VehicleResponse>> GetVehicle(string vehicleID, bool availavle = true, CancellationToken cancellationToken = default);
     Task<Result<BriefVehicleResponse>> AddVehicle(VehicleRequest vehicleRequest, CancellationToken cancellationToken = default);
     Task<Result<BriefVehicleResponse>> BuyVehicle(BuyVehicleRequest buyVehicleRequest, CancellationToken cancellationToken = default);
-    Task<Result<BriefVehicleResponse>> AddFullVehicle(IVehicleRequest vehicleRequest, CancellationToken cancellationToken = default);
     Task<Result> RemoveVehicle(string vehicleID, CancellationToken cancellationToken = default);
     Task<Result> UpdateVehicle(string vehicleID, VehicleRequest vehicleRequest, CancellationToken cancellationToken = default);
     Task<Result<VehicleStatusResponse>> StatusVehicle(string vehicleID, CancellationToken cancellationToken = default);
