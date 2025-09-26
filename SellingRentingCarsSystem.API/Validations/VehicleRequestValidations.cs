@@ -34,10 +34,6 @@ public class VehicleRequestValidations : AbstractValidator<VehicleRequest>
             .NotEmpty()
             .WithMessage("{PropertyName} is required");
 
-        RuleFor(x => x.TransmissionTypeID)
-            .NotEmpty()
-            .WithMessage("{PropertyName} is required");
-
         RuleFor(x => x.PowerTrainID)
             .NotEmpty()
             .WithMessage("{PropertyName} is required");

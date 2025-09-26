@@ -7,7 +7,6 @@ public class CustomerServices(AppDbContext appDbContext, IMapper mapper,
     private readonly IMapper mapper = mapper;
 
 
-
     public async Task<Result<CustomerResponse>> AddCustmomer
         (CustomerRequest customerRequest, CancellationToken cancellationToken = default)
     {
@@ -33,15 +32,18 @@ public class CustomerServices(AppDbContext appDbContext, IMapper mapper,
         return Result.Success(customer.ToCustomerResponse(mapper));
     }
 
-    public async Task<Result<PaginatedList<BookingVehicleResponse>>> CustomerBooks
+    public async Task<Result<PaginatedList<FullBookingVehicleResponse>>> CustomerBooks
         (string customerID, RequestFilters filters, CancellationToken cancellationToken = default)
     {
+        if (!(await appDbContext.Customers.AnyAsync(x => x.Id == customerID, cancellationToken)))
+            return Result.Failure<PaginatedList<FullBookingVehicleResponse>>(CustomerErrors.NotFoundCustomer);
+
         var query = appDbContext.Bookings.AsNoTracking()
             .Where(x => x.CustomerID == customerID)
             .OrderByDescending(x => x.StartDate)
-            .ProjectTo<BookingVehicleResponse>(mapper.ConfigurationProvider);
+            .ToFullBookingResponse(mapper);
 
-        var result = await PaginatedList<BookingVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
+        var result = await PaginatedList<FullBookingVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
         return Result.Success(result);
     }

@@ -2,7 +2,7 @@
 
 public record TransmissionTypeResponse(
     string Id,
-    string TransmissionTypeName
+    string TypeName
 );
 
 

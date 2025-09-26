@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace SellingRentingCarsSystem.API.HelpExtensions;
+﻿namespace SellingRentingCarsSystem.API.HelpExtensions;
 
 public class ImagesProperties
 {

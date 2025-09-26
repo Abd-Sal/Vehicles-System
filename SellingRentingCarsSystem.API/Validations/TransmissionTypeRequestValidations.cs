@@ -4,7 +4,7 @@ public class TransmissionTypeRequestValidations : AbstractValidator<Transmission
 {
     public TransmissionTypeRequestValidations()
     {
-        RuleFor(x => x.TransmissionTypeName)
+        RuleFor(x => x.TypeName)
             .NotEmpty()
             .WithMessage("{PropertyName} is required")
             .MaximumLength(200)

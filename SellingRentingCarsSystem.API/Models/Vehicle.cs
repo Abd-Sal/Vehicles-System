@@ -11,14 +11,13 @@ public class Vehicle
     public string InteriorColor { get; set; } = string.Empty;
     public string VehicleStatus { get; set; } = VehiclesStatus.available.ToString();
     public string BodyTypeID { get; set; } = string.Empty;
-    public string TransmissionTypeID { get; set; } = string.Empty;
+    //public string TransmissionTypeID { get; set; } = string.Empty;
     public int PassengerCount { get; set; } = 5;
     public string PowerTrainID { get; set; } = string.Empty;
     public decimal VehiclePrice { get; set; }
 
     public BodyType BodyType { get; set; } = default!;
     public Model Model { get; set; } = default!;
-    public TransmissionType TransmissionType { get; set; } = default!;
     public PowerTrain PowerTrain { get; set; } = default!;
     public ICollection<VehicleFeature> VehicleFeatures { get; set; } =
         new List<VehicleFeature>();

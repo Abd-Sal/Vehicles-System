@@ -37,11 +37,11 @@ app.UseSerilogRequestLogging();
 
 app.UseCors(ConstantStrings.AllowedOrigin);
 
+app.UseStaticFiles();
+
 app.UseAuthentication();
 
 app.UseAuthorization();
-
-app.UseStaticFiles();
 
 app.MapControllers();
 

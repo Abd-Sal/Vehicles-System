@@ -33,6 +33,7 @@ public class ImageHelper
         mem.Close();
         return Result.Success((true, fileName));
     }
+
     public static Result<bool> Delete(string path)
     {
         if (!File.Exists(path))

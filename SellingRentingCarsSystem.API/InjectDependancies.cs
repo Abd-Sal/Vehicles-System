@@ -47,25 +47,14 @@ public static class InjectDependancies
     {
         services.AddAutoMapper(cfg =>
         {
-            cfg.AddProfile<AutoMapperBodyTypeProfile>();
-            cfg.AddProfile<AutoMapperPowerTrainProfile>();
-            cfg.AddProfile<AutoMapperFeatureProfile>();
-            cfg.AddProfile<AutoMapperFuelTypeProfile>();
-            cfg.AddProfile<AutoMapperMakeProfile>();
-            cfg.AddProfile<AutoMapperModelProfile>();
-            cfg.AddProfile<AutoMapperTransmissionTypeProfile>();
-            cfg.AddProfile<AutoMapperVehicleFeatureProfile>();
-            cfg.AddProfile<AutoMapperVehicleProfile>();
-            cfg.AddProfile<AutoMapperMaintenanceProfile>();
-            cfg.AddProfile<AutoMapperPaymentProfile>();
-            cfg.AddProfile<AutoMapperRentVehicleProfile>();
-            cfg.AddProfile<AutoMapperTagProfile>();
-            cfg.AddProfile<AutoMapperBookingProfile>();
-            cfg.AddProfile<AutoMapperCustomerProfile>();
-            cfg.AddProfile<AutoMapperImageProfile>();
-            cfg.AddProfile<AutoMapperFuelDeliveryProfile>();
-            cfg.AddProfile<AutoMapperAspirationProfile>();
-            cfg.AddProfile<AutoMapperChargePortProfile>();
+            var profileTypes = Assembly.GetExecutingAssembly()
+                .GetTypes()
+                .Where(t => typeof(Profile).IsAssignableFrom(t) && !t.IsAbstract);
+
+            foreach (var profileType in profileTypes)
+            {
+                cfg.AddProfile(Activator.CreateInstance(profileType) as Profile);
+            }
         });
         return services;
     }

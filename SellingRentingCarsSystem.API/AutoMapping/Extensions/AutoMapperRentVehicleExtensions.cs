@@ -16,8 +16,8 @@ public static class AutoMapperRentVehicleExtensions
             .Include(x => x.Customer)
             .Include(x => x.Payment)
             .Include(x => x.Vehicle)
+            .Include(x => x.Vehicle.Images)
             .Include(x => x.Vehicle.BodyType)
-            .Include(x => x.Vehicle.TransmissionType)
             .Include(x => x.Vehicle.Model)
             .Include(x => x.Vehicle.Model.Make)
             .Include(x => x.Vehicle.PowerTrain)
@@ -41,14 +41,13 @@ public static class AutoMapperRentVehicleExtensions
             x.PayLater,
             x.Payment!.ToPaymentResponse(mapper)
         ));
-
     public static IQueryable<FullRentedVehicleResponse> ToFullRentedVehicleResponses(this IQueryable<RentVehicle> rentVehicles, IMapper mapper)
         => rentVehicles.AsNoTracking()
             .Include(x => x.Customer)
             .Include(x => x.Vehicle)
+            .Include(x => x.Vehicle.Images)
             .Include(x => x.Vehicle.Model)
             .Include(x => x.Vehicle.Model.Make)
-            .Include(x => x.Vehicle.TransmissionType)
             .Include(x => x.Vehicle.BodyType)
             .Include(x => x.Vehicle.PowerTrain)
             .Include(x => x.Vehicle.PowerTrain.ChargePort)

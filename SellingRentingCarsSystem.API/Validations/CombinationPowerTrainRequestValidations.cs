@@ -28,6 +28,10 @@ public class CombinationPowerTrainRequestValidations : AbstractValidator<Combina
             .NotEmpty()
             .WithMessage("{PropertyName} is required");
 
+        RuleFor(x => x.TransmissionTypeID)
+            .NotEmpty()
+            .WithMessage("{PropertyName} is required");
+
         RuleFor(x => x.EngineSize)
             .Must(x => x > 0 && x <= 24)
             .WithMessage("{PropertyName} must be greater than 0 and less then 24");

@@ -7,6 +7,7 @@ public record UpdateHybridPowerTrainRequest(
     string FuelDeliveryID,
     string FuelTypeID,
     string AspirationID,
+    string TransmissionTypeID,
     float EngineSize,
     int Cylinders,
     float ElectricOnlyRangeMiles,

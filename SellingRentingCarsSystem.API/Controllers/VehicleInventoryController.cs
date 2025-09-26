@@ -66,9 +66,6 @@ public class VehicleInventoryController(IUnitOfWork unitOfWork) : ControllerBase
         return temp.ToProblem();
     }
 
-
-
-
     [HttpPost("{vehicleID}/features")]
     public async Task<IActionResult> AddFeatureForVehicleAsync(
         [FromRoute] string vehicleID,
@@ -108,7 +105,6 @@ public class VehicleInventoryController(IUnitOfWork unitOfWork) : ControllerBase
         return temp.ToProblem();
     }
 
-
     [HttpGet("{vehicleID}/features")]
     public async Task<IActionResult> GetFeaturesForVehicleAsync(
         [FromRoute] string vehicleID,
@@ -119,7 +115,6 @@ public class VehicleInventoryController(IUnitOfWork unitOfWork) : ControllerBase
             return Ok(temp.Value);
         return temp.ToProblem();
     }
-
 
     [HttpGet("{vehicleID}/get-status")]
     public async Task<IActionResult> GetStatusForVehicleByIDAsync(

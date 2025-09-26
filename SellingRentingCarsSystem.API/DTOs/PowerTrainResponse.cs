@@ -12,6 +12,7 @@ public record PowerTrainResponse(
     string? FuelDeliveryID = null,
     string? FuelTypeID = null,
     string? AspirationID = null,
+    string? TransmissionTypeID = null,
     float? EngineSize = null,
     int? Cylinders = null
 );

@@ -10,8 +10,8 @@ public record VehicleResponse(
     string ExteriorColor,
     string VehicleStatus,
     BodyTypeResponse BodyType,
-    TransmissionTypeResponse TransmissionType,
     int passengerCount,
     FullPowerTrainResponse PowerTrain,
+    ImageResponse[] Images,
     decimal VehiclePrice
 );

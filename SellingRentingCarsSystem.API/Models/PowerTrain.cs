@@ -13,12 +13,14 @@ public class PowerTrain
     public string? FuelDeliveryID { get; set; }
     public string? FuelTypeID { get; set; }
     public string? AspirationID { get; set; }
+    public string? TransmissionTypeID { get; set; }
     public float? EngineSize { get; set; }
     public int? Cylinders { get; set; }
     public string HashCode { get; set; } = string.Empty;
 
     public ICollection<Vehicle> Vehicles { get; set; } =
         new List<Vehicle>();
+    public TransmissionType? TransmissionType { get; set; }
     public FuelType? FuleType { get; set; }
     public FuelDelivery? FuelDelivery { get; set; }
     public Aspiration? Aspiration { get; set; }

@@ -89,4 +89,3 @@ public class VehicleDetailsMakeServices(AppDbContext appDbContext, IMapper mappe
     }
 
 }
-

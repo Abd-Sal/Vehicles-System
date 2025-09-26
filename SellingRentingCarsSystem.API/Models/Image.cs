@@ -7,7 +7,6 @@ public class Image
     public string ImageName { get; set; } = string.Empty;
     public bool IsPrimary { get; set; } = true;
     public string? Caption { get; set; }
-    public int DisplayOrder { get; set; } = 0;
     public int SizeInBytes { get; set; }
 
     public Vehicle Vehicle { get; set; } = default!;

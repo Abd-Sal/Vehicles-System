@@ -12,6 +12,7 @@ public static class AutoMapperPowerTrainsExtensions
             powerTrain.FuelDelivery != null ? powerTrain.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
             powerTrain.FuleType != null ? powerTrain.FuleType.ToFuelTypeResponse(mapper) : null,
             powerTrain.Aspiration != null ? powerTrain.Aspiration.ToAspirationResponse(mapper) : null,
+            powerTrain.TransmissionType != null ? powerTrain.TransmissionType.ToTransmissionTypeResponse(mapper) : null,
             powerTrain.EngineSize, powerTrain.Cylinders);
     public static PowerTrain ToPowerTrain(this CombinationPowerTrainRequest combinationPowerTrainRequest, IMapper mapper)
         => mapper.Map<PowerTrain>(combinationPowerTrainRequest);
@@ -29,13 +30,7 @@ public static class AutoMapperPowerTrainsExtensions
             .Include(x => x.FuleType)
             .Include(x => x.FuelDelivery)
             .Include(x => x.Aspiration)
-            .Select(x => new FullPowerTrainResponse(
-                x.Id, x.PowerTrainType, x.HorsePower, x.Torque, x.CombinedRangeMiles,
-                x.ElectricOnlyRangeMiles, x.ChargePort != null ? x.ChargePort.ToChargePortResponse(mapper) : null,
-                x.BatteryCapacityKWh, x.FuelDelivery != null ? x.FuelDelivery.ToFuelDeliveryResponse(mapper) : null,
-                x.FuleType != null ? x.FuleType.ToFuelTypeResponse(mapper) : null,
-                x.Aspiration != null ? x.Aspiration.ToAspirationResponse(mapper) : null,
-                x.EngineSize, x.Cylinders
-            ));
+            .Include(x => x.TransmissionType)
+            .Select(x => x.ToFullPowerTrain(mapper));
 
 }

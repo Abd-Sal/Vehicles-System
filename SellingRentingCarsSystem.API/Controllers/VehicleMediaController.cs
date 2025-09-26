@@ -21,7 +21,7 @@ public class VehicleMediaController(IUnitOfWork unitOfWork) : ControllerBase
     [HttpPost("{vehicleID}/images")]
     public async Task<IActionResult> AddVehicleImageAsync(
         [FromRoute] string vehicleID,
-        [FromRoute] ImageRequest imageRequest,
+        [FromForm] ImageRequest imageRequest,
         CancellationToken cancellationToken)
     {
         var temp = await unitOfWork.VehicleServices.AddImageForVehicle(vehicleID, imageRequest, cancellationToken);

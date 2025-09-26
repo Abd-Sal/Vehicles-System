@@ -11,17 +11,17 @@ public class VehicleDetailsTransmissionTypeServices(AppDbContext appDbContext, I
         if (transmissionTypeRequest is null)
             return Result.Failure<TransmissionTypeResponse>(VehicleDetailsErrors.NullTransmissionType);
 
-        if ((await appDbContext.TransmissionTypes.FindAsync(transmissionTypeID, cancellationToken)) is not { } transmissionType)
+        if ((await appDbContext.TransmissionTypes.FindAsync([transmissionTypeID, cancellationToken], cancellationToken: cancellationToken)) is not { } transmissionType)
             return Result.Failure<TransmissionTypeResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
 
         if (await appDbContext.TransmissionTypes.AnyAsync(x => x.Id != transmissionTypeID &&
-            x.TypeName == transmissionTypeRequest.TransmissionTypeName, cancellationToken))
+            x.TypeName == transmissionTypeRequest.TypeName, cancellationToken))
             return Result.Failure<TransmissionTypeResponse>(VehicleDetailsErrors.DuplicatedTransmissionType);
 
         await appDbContext.TransmissionTypes.Where(x => x.Id == transmissionTypeID)
             .ExecuteUpdateAsync(setters =>
                 setters
-                    .SetProperty(x => x.TypeName, transmissionTypeRequest.TransmissionTypeName),
+                    .SetProperty(x => x.TypeName, transmissionTypeRequest.TypeName),
                 cancellationToken
             );
 
@@ -75,7 +75,7 @@ public class VehicleDetailsTransmissionTypeServices(AppDbContext appDbContext, I
         if (transmissionTypeRequest is null)
             return Result.Failure<TransmissionTypeResponse>(VehicleDetailsErrors.NullTransmissionType);
 
-        if (await appDbContext.TransmissionTypes.AnyAsync(x => x.TypeName == transmissionTypeRequest.TransmissionTypeName.Trim(), cancellationToken))
+        if (await appDbContext.TransmissionTypes.AnyAsync(x => x.TypeName.ToLower() == transmissionTypeRequest.TypeName.ToLower().Trim(), cancellationToken))
             return Result.Failure<TransmissionTypeResponse>(VehicleDetailsErrors.DuplicatedTransmissionType);
 
         var transmissionType = transmissionTypeRequest.ToTransmissionType(mapper);

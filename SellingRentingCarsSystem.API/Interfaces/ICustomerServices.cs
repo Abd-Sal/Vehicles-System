@@ -9,5 +9,5 @@ public interface ICustomerServices
     Task<Result<PaginatedList<CustomerResponse>>> SearchForCustmomers(string customerName, RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result<PaginatedList<RentVehicleResponse>>> RentHistoryByCustmomer(string customerID, RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result<PaginatedList<SellVehicleResponse>>> SellHistoryByCustmomer(string customerID, RequestFilters filters, CancellationToken cancellationToken = default);
-    Task<Result<PaginatedList<BookingVehicleResponse>>> CustomerBooks(string customerID, RequestFilters filters, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<FullBookingVehicleResponse>>> CustomerBooks(string customerID, RequestFilters filters, CancellationToken cancellationToken = default);
 }

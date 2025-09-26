@@ -8,8 +8,6 @@ public class VehiclePowerTrainRequestValidations : AbstractValidator<VehiclePowe
 
         RuleFor(x => x.PowerTrain)
             .NotEmpty()
-            .WithMessage("{PropertyName} is required")
-            .IsEnumName(typeof(PowerTrainTypes), caseSensitive: true)
-            .WithMessage($"PowerTrain have to be one of these types ({powerTrainTypes})");
+            .WithMessage("{PropertyName} is required");
     }
 } 

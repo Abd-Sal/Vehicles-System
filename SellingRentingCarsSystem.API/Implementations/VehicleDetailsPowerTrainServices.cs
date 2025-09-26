@@ -14,11 +14,14 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
         if (!(await appDbContext.FuelTypes.AnyAsync(x => x.Id == updateCombinationPowerTrainRequest.FuelTypeID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotfoundFuelType);
 
+        if (!(await appDbContext.FuelDeliveries.AnyAsync(x => x.Id == updateCombinationPowerTrainRequest.FuelDeliveryID, cancellationToken)))
+            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundFuelDelivery);
+
         if (!(await appDbContext.Aspirations.AnyAsync(x => x.Id == updateCombinationPowerTrainRequest.AspirationID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundAspiration);
 
-        if (!(await appDbContext.FuelDeliveries.AnyAsync(x => x.Id == updateCombinationPowerTrainRequest.FuelDeliveryID, cancellationToken)))
-            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundFuelDelivery);
+        if (!(await appDbContext.TransmissionTypes.AnyAsync(x => x.Id == updateCombinationPowerTrainRequest.TransmissionTypeID, cancellationToken)))
+            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
 
         if ((await appDbContext.PowerTrains.FindAsync(powerTrainID, cancellationToken)) is not { } powerTrain)
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundPowerTrain);
@@ -37,6 +40,7 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
                     .SetProperty(x => x.FuelTypeID, updateCombinationPowerTrainRequest.FuelTypeID)
                     .SetProperty(x => x.CombinedRangeMiles, updateCombinationPowerTrainRequest.CombinedRangeMiles)
                     .SetProperty(x => x.AspirationID, updateCombinationPowerTrainRequest.AspirationID)
+                    .SetProperty(x => x.TransmissionTypeID, updateCombinationPowerTrainRequest.TransmissionTypeID)
                     .SetProperty(x => x.EngineSize, updateCombinationPowerTrainRequest.EngineSize)
                     .SetProperty(x => x.HashCode, hashcode),
                 cancellationToken
@@ -97,6 +101,9 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
         if ((await appDbContext.PowerTrains.FindAsync(powerTrainID, cancellationToken)) is not { } powerTrain)
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundPowerTrain);
 
+        if (!(await appDbContext.TransmissionTypes.AnyAsync(x => x.Id == updateHybridPowerTrainRequest.TransmissionTypeID, cancellationToken)))
+            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
+
         var hashcode = updateHybridPowerTrainRequest.HashCode();
         if (await appDbContext.PowerTrains.AnyAsync(x => x.Id != powerTrainID && x.HashCode == hashcode, cancellationToken))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.DuplicatedPowerTrain);
@@ -118,6 +125,7 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
                     .SetProperty(x => x.HorsePower, updateHybridPowerTrainRequest.HorsePower)
                     .SetProperty(x => x.ElectricOnlyRangeMiles, updateHybridPowerTrainRequest.ElectricOnlyRangeMiles)
                     .SetProperty(x => x.ChargePortID, updateHybridPowerTrainRequest.ChargePortID)
+                    .SetProperty(x => x.TransmissionTypeID, updateHybridPowerTrainRequest.TransmissionTypeID)
                     .SetProperty(x => x.PowerTrainType, hybridType)
                     .SetProperty(x => x.HashCode, hashcode),
                 cancellationToken
@@ -140,6 +148,9 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
 
         if (!(await appDbContext.Aspirations.AnyAsync(x => x.Id == combinationPowerTrainRequest.AspirationID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundAspiration);
+
+        if (!(await appDbContext.TransmissionTypes.AnyAsync(x => x.Id == combinationPowerTrainRequest.TransmissionTypeID, cancellationToken)))
+            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
 
         var powerTrain = combinationPowerTrainRequest.ToPowerTrain(mapper);
         powerTrain.PowerTrainType = PowerTrainTypes.ice.ToString();
@@ -192,6 +203,9 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
         if (!(await appDbContext.Aspirations.AnyAsync(x => x.Id == hybridPowerTrainRequest.AspirationID, cancellationToken)))
             return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundAspiration);
 
+        if (!(await appDbContext.TransmissionTypes.AnyAsync(x => x.Id == hybridPowerTrainRequest.TransmissionTypeID, cancellationToken)))
+            return Result.Failure<PowerTrainResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
+
         var powerTrain = hybridPowerTrainRequest.ToPowerTrain(mapper);
         powerTrain.PowerTrainType = hybridPowerTrainRequest.PlugInHybrid
             ? PowerTrainTypes.plugInHybrid.ToString()
@@ -214,6 +228,7 @@ public class VehicleDetailsPowerTrainServices(AppDbContext appDbContext, IMapper
             .Include(x => x.FuleType)
             .Include(x => x.FuelDelivery)
             .Include(x => x.Aspiration)
+            .Include(x => x.TransmissionType)
             .SingleOrDefaultAsync(x => x.Id == powerTrainID, cancellationToken))?
             .ToFullPowerTrain(mapper);
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SellingRentingCarsSystem.API.Data;
 
@@ -11,9 +12,11 @@ using SellingRentingCarsSystem.API.Data;
 namespace SellingRentingCarsSystem.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250926010002_moveTransmissionTypeToPowerTrains")]
+    partial class moveTransmissionTypeToPowerTrains
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1076,6 +1079,9 @@ namespace SellingRentingCarsSystem.API.Migrations
                     b.Property<string>("Caption")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
 
                     b.Property<string>("ImageName")
                         .IsRequired()
@@ -2565,7 +2571,7 @@ namespace SellingRentingCarsSystem.API.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN.01@TEML.NET",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEBBYN6gGIPKykBe///pNHJSMNckdzVuAjekyWW7u/EZ2ghnltC84g3q7kSPzyHvzPA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEH8ihOxT4VyiVJDJxdrBZwJ8Au5BsabRk+vz95uBSLEsftvmDkQn61mLRr7IRGojqg==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "A180686382BE42DDA62A4DAE3CA4C96D",
                             TwoFactorEnabled = false,

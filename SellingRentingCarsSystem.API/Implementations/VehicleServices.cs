@@ -1,4 +1,7 @@
-﻿namespace SellingRentingCarsSystem.API.Implementations;
+﻿using SellingRentingCarsSystem.API.Abstractions;
+using SellingRentingCarsSystem.API.Enums;
+
+namespace SellingRentingCarsSystem.API.Implementations;
 
 public class VehicleServices(
         AppDbContext appDbContext, IMapper mapper,
@@ -53,10 +56,7 @@ public class VehicleServices(
         if (!(await appDbContext.BodyTypes.AnyAsync(x => x.Id == vehicleRequest.BodyTypeID, cancellationToken)))
             return Result.Failure<BriefVehicleResponse>(VehicleDetailsErrors.NotFoundBodyType);
 
-        if(await appDbContext.TransmissionTypes.AnyAsync(x => x.Id == vehicleRequest.TransmissionTypeID, cancellationToken))
-            return Result.Failure<BriefVehicleResponse>(VehicleDetailsErrors.NotFoundTransmissionType);
-
-        if(await appDbContext.PowerTrains.AnyAsync(x => x.Id == vehicleRequest.PowerTrainID, cancellationToken))
+        if(!(await appDbContext.PowerTrains.AnyAsync(x => x.Id == vehicleRequest.PowerTrainID, cancellationToken)))
             return Result.Failure<BriefVehicleResponse>(VehicleDetailsErrors.NotFoundPowerTrain);
 
         var vehicle = vehicleRequest.ToVehicle(mapper);
@@ -71,8 +71,7 @@ public class VehicleServices(
     {
         var query = appDbContext.Vehicles
             .Where(x => !availableOnly || x.VehicleStatus == VehiclesStatus.available.ToString())
-            .ToVehicleResponse(mapper)
-            .OrderByDescending(x => x.AddDate);
+            .ToVehicleResponse(mapper);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -86,12 +85,11 @@ public class VehicleServices(
         if (test.SingleOrDefault(x => x == vehiclePowerTrainRequest.PowerTrain) is not { } powerTrainType)
             return Result.Failure<PaginatedList<VehicleResponse>>(VehicleDetailsErrors.WrongePowerTrain);
 
-        var query = appDbContext.Vehicles
+        var query = appDbContext.Vehicles.AsNoTracking()
             .Include(x => x.PowerTrain)
-            .Where(x => x.PowerTrain.PowerTrainType != powerTrainType ||
-                !availableOnly || x.VehicleStatus == VehiclesStatus.available.ToString())
-            .ToVehicleResponse(mapper)
-            .OrderByDescending(x => x.AddDate);
+            .Where(x => x.PowerTrain.PowerTrainType == powerTrainType)
+            .Where(x => availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
+            .ToVehicleResponse(mapper);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -104,11 +102,10 @@ public class VehicleServices(
         if (!(await appDbContext.PowerTrains.AnyAsync(x => x.Id == powerTrainID, cancellationToken)))
             return Result.Failure<PaginatedList<VehicleResponse>>(VehicleDetailsErrors.NotFoundPowerTrain);
 
-        var query = appDbContext.Vehicles
-            .Where(x => x.PowerTrainID != powerTrainID ||
-                !availableOnly || x.VehicleStatus == VehiclesStatus.available.ToString())
-            .ToVehicleResponse(mapper)
-            .OrderByDescending(x => x.AddDate);
+        var query = appDbContext.Vehicles.AsNoTracking()
+            .Where(x => x.PowerTrainID == powerTrainID)
+            .Where(x => availableOnly ? x.VehicleStatus == VehiclesStatus.available.ToString() : true)
+            .ToVehicleResponse(mapper);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -122,7 +119,6 @@ public class VehicleServices(
             .Include(x => x.BodyType)
             .Include(x => x.Model)
             .Include(x => x.Model.Make)
-            .Include(x => x.TransmissionType)
             .Include(x => x.PowerTrain)
             .Include(x => x.PowerTrain.ChargePort)
             .Include(x => x.PowerTrain.FuleType)
@@ -160,8 +156,7 @@ public class VehicleServices(
         var query = appDbContext.Vehicles
             .Include(x => x.Model)
             .Where(x => x.Model.ModelName.Contains(modelName))
-            .ToVehicleResponse(mapper)
-            .OrderByDescending(x => x.AddDate);
+            .ToVehicleResponse(mapper);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -200,7 +195,6 @@ public class VehicleServices(
                 setters
                     .SetProperty(x => x.VIN, vehicleRequest.VIN)
                     .SetProperty(x => x.PowerTrainID, vehicleRequest.PowerTrainID)
-                    .SetProperty(x => x.TransmissionTypeID, vehicleRequest.TransmissionTypeID)
                     .SetProperty(x => x.BodyTypeID, vehicleRequest.BodyTypeID)
                     .SetProperty(x => x.ModelID, vehicleRequest.ModelID)
                     .SetProperty(x => x.RangeMiles, vehicleRequest.RangeMiles)
@@ -217,8 +211,7 @@ public class VehicleServices(
     {
         var query = appDbContext.Vehicles
             .Where(x => x.VehicleStatus == vehicleStatusRequest.Status)
-            .ToVehicleResponse(mapper)
-            .OrderByDescending(x => x.AddDate);
+            .ToVehicleResponse(mapper);
 
         var result = await PaginatedList<VehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
 
@@ -325,6 +318,14 @@ public class VehicleServices(
         var addImage = await ImageHelper.Save(imageRequest.Image, imageOptions);
         if (addImage.IsFailure)
             return Result.Failure<ImageResponse>(addImage.Error);
+
+        if (imageRequest.IsPrimary)
+        {
+            var primaryImage = await appDbContext.Images
+                .SingleOrDefaultAsync(x => x.VehicleID == vehicleID && x.IsPrimary);
+            if (primaryImage is not null)
+                primaryImage.IsPrimary = false;
+        }
 
         var image = imageRequest.ToImage(mapper);
         image.VehicleID = vehicleID;

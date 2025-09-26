@@ -10,8 +10,6 @@ public record BriefVehicleResponse(
     string InteriorColor,
     string VehicleStatus,
     string BodyTypeID,
-    string? FuelTypeID,
-    string TransmissionTypeID,
     int PassengerCount,
     string PowerTrainID,
     decimal VehiclePrice

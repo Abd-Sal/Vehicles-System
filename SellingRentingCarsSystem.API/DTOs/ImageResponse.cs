@@ -6,6 +6,5 @@ public record ImageResponse(
     string ImageName,
     bool IsPrimary,
     string Caption,
-    int DisplayOrder,
     int SizeInBytes
 );

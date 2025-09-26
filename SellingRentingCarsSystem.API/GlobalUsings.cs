@@ -5,6 +5,7 @@ global using System.Text;
 global using System.Security.Cryptography;
 global using System.Net.Mail;
 global using System.Net;
+global using System.ComponentModel.DataAnnotations;
 
 global using Microsoft.Extensions.Options;
 global using Microsoft.AspNetCore.Authentication.JwtBearer;

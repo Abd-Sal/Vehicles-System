@@ -12,6 +12,7 @@ public record FullPowerTrainResponse(
     FuelDeliveryResponse? FuelDelivery = null,
     FuelTypeResponse? FuelType = null,
     AspirationResponse? Aspiration = null,
+    TransmissionTypeResponse? Transmission = null,
     float? EngineSize = null,
     int? Cylinders = null
 );
