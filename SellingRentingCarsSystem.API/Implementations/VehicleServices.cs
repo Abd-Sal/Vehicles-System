@@ -35,6 +35,7 @@ public class VehicleServices(
             return Result.Failure<VehicleFeatureResponse>(VehicleErrors.UnavailableVehicle);
 
         var vehicleFeature = vehicleFeatureRequest.ToVehicleFeature(mapper);
+        vehicleFeature.VehicleID = vehicleID;
         var add = await appDbContext.VehicleFeatures.AddAsync(vehicleFeature, cancellationToken);
         var result = await appDbContext.SaveChangesAsync(cancellationToken);
 

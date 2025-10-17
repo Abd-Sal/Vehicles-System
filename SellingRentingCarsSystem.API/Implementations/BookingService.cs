@@ -196,7 +196,7 @@ public class BookingService(AppDbContext appDbContext, IMapper mapper,
                         (isCanceled ? !x.Canceled : true) &&
                         (isDone ? !x.Done : true))
             .ToFullBookingResponse(mapper)
-            .OrderByDescending(x => x.StartDate)
+            //.OrderByDescending(x => x.StartDate)
             .ToListAsync(cancellationToken);
         return Result.Success(query);
     }

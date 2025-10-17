@@ -5,7 +5,7 @@ public class SellVehicle
     public string Id { get; set; } = Guid.CreateVersion7().ToString();
     public string VehicleID { get; set; } = string.Empty;
     public string CustomerID { get; set; } = string.Empty;
-    public DateTime SellDate { get; set; }
+    public DateTime SellDate { get; set; } = DateTime.UtcNow;
     public string PaymentID { get; set; } = string.Empty;
 
     public Vehicle Vehicle { get; set; } = default!;

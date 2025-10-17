@@ -14,8 +14,7 @@ public class SellServices(AppDbContext appDbContext, IMapper mapper,
         (RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var query = appDbContext.SellVehicles
-            .ToFullSellVehicleResponses(mapper)
-            .OrderByDescending(x => x.SellDate);
+            .ToFullSellVehicleResponses(mapper);
 
         var result = await PaginatedList<FullSellVehicleResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize, cancellationToken);
         
@@ -27,26 +26,24 @@ public class SellServices(AppDbContext appDbContext, IMapper mapper,
     {
         if (await appDbContext.SellVehicles.FindAsync(sellVehicleID, cancellationToken) is not { } sellVehicle)
             return Result.Failure(SellVehicleErrors.NotFoundSellVehicle);
-        using (var trans = appDbContext.Database.BeginTransactionAsync())
-        {
-            var removePayment = await paymentServices.RemovePayment(sellVehicle.PaymentID, cancellationToken);
-            if (removePayment.IsFailure)
-                return Result.Failure(removePayment.Error);
 
-            await appDbContext.Vehicles.Where(x => x.Id == sellVehicle.VehicleID)
-                .ExecuteUpdateAsync(setters =>
-                    setters
-                        .SetProperty(x => x.VehicleStatus, VehiclesStatus.available.ToString()),
-                    cancellationToken
-                );
+        await appDbContext.Vehicles.Where(x => x.Id == sellVehicle.VehicleID)
+            .ExecuteUpdateAsync(setters =>
+                setters
+                    .SetProperty(x => x.VehicleStatus, VehiclesStatus.available.ToString()),
+                cancellationToken
+            );
 
-            await appDbContext.SellVehicles.Where(x => x.Id == sellVehicleID)
-                .ExecuteDeleteAsync(cancellationToken);
+        await appDbContext.SellVehicles.Where(x => x.Id == sellVehicleID)
+            .ExecuteDeleteAsync(cancellationToken);
 
-            await appDbContext.SaveChangesAsync(cancellationToken);
+        var removePayment = await paymentServices.RemovePayment(sellVehicle.PaymentID, cancellationToken);
+        if (removePayment.IsFailure)
+            return Result.Failure(removePayment.Error);
 
-            logger.LogInformation("vehicle:(ID:{vehicleID}) is returned", sellVehicle.VehicleID);
-        }
+        await appDbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("vehicle:(ID:{vehicleID}) is returned", sellVehicle.VehicleID);
 
         return Result.Success();
     }
@@ -68,32 +65,30 @@ public class SellServices(AppDbContext appDbContext, IMapper mapper,
             return Result.Failure<SellVehicleResponse>(CustomerErrors.NotFoundCustomer);
 
         SellVehicle? sellVehicle = null;
-        using (var trans = appDbContext.Database.BeginTransactionAsync())
-        {
-            var payment = await paymentServices.DoPayment(sellVehicleRequest.Payment);
-            if (payment.IsFailure)
-                return Result.Failure<SellVehicleResponse>(payment.Error);
+        var payment = await paymentServices.DoPayment(sellVehicleRequest.Payment);
+        if (payment.IsFailure)
+            return Result.Failure<SellVehicleResponse>(payment.Error);
 
-            sellVehicle = sellVehicleRequest.ToSellVehicle(mapper);
-            sellVehicle.PaymentID = payment.Value.Id;
-            await appDbContext.SellVehicles.AddAsync(sellVehicle, cancellationToken);
+        sellVehicle = sellVehicleRequest.ToSellVehicle(mapper);
+        sellVehicle.PaymentID = payment.Value.Id;
+        await appDbContext.SellVehicles.AddAsync(sellVehicle, cancellationToken);
 
-            await appDbContext.Vehicles.Where(x => x.Id == sellVehicle.VehicleID)
-                .ExecuteUpdateAsync(setters =>
-                    setters
-                        .SetProperty(x => x.VehicleStatus, VehiclesStatus.sold.ToString()),
-                    cancellationToken
-                );
+        await appDbContext.Vehicles.Where(x => x.Id == sellVehicle.VehicleID)
+            .ExecuteUpdateAsync(setters =>
+                setters
+                    .SetProperty(x => x.VehicleStatus, VehiclesStatus.sold.ToString()),
+                cancellationToken
+            );
 
-            var date = DateTime.UtcNow;
-            var checkBookingDateRequest = new CheckBookingDateRequest(sellVehicleRequest.VehicleID, date, date.AddYears(1));
-            var cancelBooks = await bookingServices.CancelBookingForVehicleInRangeDate(checkBookingDateRequest, cancellationToken);
+        var date = DateTime.UtcNow;
+        var checkBookingDateRequest = new CheckBookingDateRequest(sellVehicleRequest.VehicleID, date, date.AddYears(1));
+        var cancelBooks = await bookingServices.CancelBookingForVehicleInRangeDate(checkBookingDateRequest, cancellationToken);
 
-            await appDbContext.SaveChangesAsync(cancellationToken);
+        await appDbContext.SellVehicles.AddAsync(sellVehicle, cancellationToken);
 
-            logger.LogInformation("vehicle:(ID:{vehicleID}) is sold", sellVehicleRequest.VehicleID);
-
-        }
+        await appDbContext.SaveChangesAsync(cancellationToken);
+            
+        logger.LogInformation("vehicle:(ID:{vehicleID}) is sold", sellVehicleRequest.VehicleID);
         if(sellVehicle is not null)
             return Result.Success(sellVehicle.ToSellVehicleResponse(mapper));
         return Result.Failure<SellVehicleResponse>(GeneralErrors.UnexpectedError("Error In Sell Vehicle"));
